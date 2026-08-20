@@ -1,7 +1,5 @@
-package com.edu.pe.domain.model
+package pe.edu.upeu.domain.model
 
-import pe.edu.upeu.domain.model.DetallePedido
-import pe.edu.upeu.domain.model.EstadoPedido
 
 data class Pedido(
     val id: Long,

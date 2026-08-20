@@ -1,4 +1,4 @@
-package com.edu.pe.domain.model
+package pe.edu.upeu.domain.model
 
 import kotlin.test.Test
 import kotlin.test.assertEquals

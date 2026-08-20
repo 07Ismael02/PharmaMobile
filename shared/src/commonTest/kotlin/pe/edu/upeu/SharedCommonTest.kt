@@ -1,4 +1,4 @@
-package com.edu.pe
+package pe.edu.upeu.domain
 
 import kotlin.test.Test
 import kotlin.test.assertEquals

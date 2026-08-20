@@ -1,4 +1,4 @@
-package com.edu.pe.domain.model
+package pe.edu.upeu.domain.model
 
 data class Producto(
     val id: Long,

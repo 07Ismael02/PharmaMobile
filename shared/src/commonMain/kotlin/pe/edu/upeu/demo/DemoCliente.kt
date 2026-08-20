@@ -1,6 +1,6 @@
 package pe.edu.upeu.demo
 
-import com.edu.pe.domain.model.Cliente
+import pe.edu.upeu.domain.model.Cliente
 
 fun probarCliente(){
     val cliente = Cliente(
