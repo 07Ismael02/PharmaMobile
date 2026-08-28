@@ -15,6 +15,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import pe.edu.upeu.domain.model.Producto
+
 @Composable
 fun ProductoScreen() {
 
@@ -30,43 +32,74 @@ fun ProductoScreen() {
         mutableStateOf("")
     }
 
-    var nombreError by remember {
+    var mensajeRetroalimentacion by remember {
         mutableStateOf<String?>(null)
     }
 
-    var precioError by remember {
-        mutableStateOf<String?>(null)
+    var intentoRegistrar by remember {
+        mutableStateOf(false)
     }
 
-    var stockError by remember {
-        mutableStateOf<String?>(null)
-    }
+    val nombreError = "El nombre es obligatorio."
+    val precioNumericoError = "Ingrese un precio numérico."
+    val precioRangoError = "El precio debe ser mayor que cero."
+    val stockEnteroError = "Ingrese un stock entero."
+    val stockRangoError = "El stock no puede ser negativo."
 
-    var mensajeExito by remember {
-        mutableStateOf<String?>(null)
-    }
+    fun registrarProducto() {
+        intentoRegistrar = true
 
-    fun validar(): Boolean {
-        nombreError = if (nombre.isBlank()) "El nombre es obligatorio" else null
+        if (!nombre.trim().isNotBlank()) {
+            mensajeRetroalimentacion = nombreError
+            return
+        }
 
         val precioValor = precio.toDoubleOrNull()
-        precioError = when {
-            precio.isBlank() -> "El precio es obligatorio"
-            precioValor == null -> "El precio debe ser un número válido"
-            precioValor <= 0 -> "El precio debe ser mayor a 0"
-            else -> null
+        if (precioValor == null) {
+            mensajeRetroalimentacion = precioNumericoError
+            return
+        }
+
+        if (precioValor <= 0) {
+            mensajeRetroalimentacion = precioRangoError
+            return
         }
 
         val stockValor = stock.toIntOrNull()
-        stockError = when {
-            stock.isBlank() -> "El stock es obligatorio"
-            stockValor == null -> "El stock debe ser un número entero"
-            stockValor < 0 -> "El stock no puede ser negativo"
-            else -> null
+        if (stockValor == null) {
+            mensajeRetroalimentacion = stockEnteroError
+            return
         }
 
-        return nombreError == null && precioError == null && stockError == null
+        if (stockValor < 0) {
+            mensajeRetroalimentacion = stockRangoError
+            return
+        }
+
+        val producto = Producto(
+            id = 0L,
+            nombre = nombre.trim(),
+            precio = precioValor,
+            stock = stockValor
+        )
+
+        mensajeRetroalimentacion =
+            "Producto \"${producto.nombre}\" registrado correctamente"
+        nombre = ""
+        precio = ""
+        stock = ""
+        intentoRegistrar = false
     }
+
+    val nombreTieneError = intentoRegistrar && mensajeRetroalimentacion == nombreError
+    val precioTieneError = intentoRegistrar && (
+        mensajeRetroalimentacion == precioNumericoError ||
+            mensajeRetroalimentacion == precioRangoError
+        )
+    val stockTieneError = intentoRegistrar && (
+        mensajeRetroalimentacion == stockEnteroError ||
+            mensajeRetroalimentacion == stockRangoError
+        )
 
     Column(
         modifier = Modifier
@@ -84,9 +117,9 @@ fun ProductoScreen() {
             label = {
                 Text("Nombre")
             },
-            isError = nombreError != null,
+            isError = nombreTieneError,
             supportingText = {
-                nombreError?.let { Text(it) }
+                if (nombreTieneError) Text(nombreError)
             },
             modifier = Modifier.fillMaxWidth()
         )
@@ -97,9 +130,9 @@ fun ProductoScreen() {
             label = {
                 Text("Precio")
             },
-            isError = precioError != null,
+            isError = precioTieneError,
             supportingText = {
-                precioError?.let { Text(it) }
+                if (precioTieneError) mensajeRetroalimentacion?.let { Text(it) }
             },
             modifier = Modifier.fillMaxWidth()
         )
@@ -110,30 +143,24 @@ fun ProductoScreen() {
             label = {
                 Text("Stock")
             },
-            isError = stockError != null,
+            isError = stockTieneError,
             supportingText = {
-                stockError?.let { Text(it) }
+                if (stockTieneError) mensajeRetroalimentacion?.let { Text(it) }
             },
             modifier = Modifier.fillMaxWidth()
         )
 
         Button(
-            onClick = {
-                mensajeExito = null
-                if (validar()) {
-                    mensajeExito = "Producto \"$nombre\" registrado correctamente"
-                    nombre = ""
-                    precio = ""
-                    stock = ""
-                }
-            },
+            onClick = { registrarProducto() },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Registrar")
         }
 
-        mensajeExito?.let {
-            Text(it)
+        if (!intentoRegistrar) {
+            mensajeRetroalimentacion?.let {
+                Text(it)
+            }
         }
     }
 }
