@@ -1,4 +1,10 @@
 package pe.edu.upeu.navigation
+sealed class Screen {
+    data object Inicio : Screen()
 
-class Screen {
+    data object Productos : Screen()
+
+    data object Clientes : Screen()
+
+    data object Pedidos : Screen()
 }
