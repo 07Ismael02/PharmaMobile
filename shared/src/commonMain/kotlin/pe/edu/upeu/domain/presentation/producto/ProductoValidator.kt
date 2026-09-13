@@ -1,32 +1,24 @@
 package pe.edu.upeu.domain.presentation.producto
 
+import pe.edu.upeu.domain.usecase.RegistrarProductoUseCase
+
 object ProductoValidator {
 
-    const val NOMBRE_ERROR = "El nombre es obligatorio."
-    const val PRECIO_NUMERICO_ERROR = "Ingrese un precio numérico."
-    const val PRECIO_RANGO_ERROR = "El precio debe ser mayor que cero."
-    const val STOCK_ENTERO_ERROR = "Ingrese un stock entero."
-    const val STOCK_RANGO_ERROR = "El stock no puede ser negativo."
+    const val NOMBRE_ERROR = RegistrarProductoUseCase.NOMBRE_ERROR
+    const val PRECIO_NUMERICO_ERROR = RegistrarProductoUseCase.PRECIO_NUMERICO_ERROR
+    const val PRECIO_RANGO_ERROR = RegistrarProductoUseCase.PRECIO_RANGO_ERROR
+    const val STOCK_ENTERO_ERROR = RegistrarProductoUseCase.STOCK_ENTERO_ERROR
+    const val STOCK_RANGO_ERROR = RegistrarProductoUseCase.STOCK_RANGO_ERROR
 
     fun validarNombre(nombre: String): String? {
-        return if (nombre.trim().isNotBlank()) null else NOMBRE_ERROR
+        return RegistrarProductoUseCase.validarNombre(nombre)
     }
 
     fun validarPrecio(precio: String): String? {
-        val precioValor = precio.toDoubleOrNull()
-        return when {
-            precioValor == null || !precioValor.isFinite() -> PRECIO_NUMERICO_ERROR
-            precioValor <= 0 -> PRECIO_RANGO_ERROR
-            else -> null
-        }
+        return RegistrarProductoUseCase.validarPrecio(precio)
     }
 
     fun validarStock(stock: String): String? {
-        val stockValor = stock.toIntOrNull()
-        return when {
-            stockValor == null -> STOCK_ENTERO_ERROR
-            stockValor < 0 -> STOCK_RANGO_ERROR
-            else -> null
-        }
+        return RegistrarProductoUseCase.validarStock(stock)
     }
 }

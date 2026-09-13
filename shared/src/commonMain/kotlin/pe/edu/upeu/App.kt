@@ -48,6 +48,7 @@ import pe.edu.upeu.domain.presentation.producto.ProductoScreen
 import pe.edu.upeu.navigation.Screen
 import pe.edu.upeu.domain.presentation.inicio.InicioScreen
 import pe.edu.upeu.theme.PharmaMobilTheme
+import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -299,7 +300,7 @@ private fun AppScaffold(
         ) {
             when (pantallaActual) {
                 Screen.Inicio -> InicioScreen()
-                Screen.Productos -> ProductoScreen()
+                Screen.Productos -> ProductoScreen(viewModel = koinViewModel())
                 Screen.Clientes -> ClienteScreen()
                 Screen.Pedidos -> Text(
                     text = "Pantalla de pedidos en construcción",
