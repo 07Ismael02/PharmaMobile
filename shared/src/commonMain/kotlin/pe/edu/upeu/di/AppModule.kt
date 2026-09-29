@@ -15,7 +15,7 @@ import pe.edu.upeu.domain.repository.ProductoRepository
 import pe.edu.upeu.domain.usecase.RegistrarProductoUseCase
 
 val dataModule = module {
-    single<HttpClient> { crearHttpClient(get(), get(named("urlBase"))) }
+    single<HttpClient> { crearHttpClient(get(), get(named("urlBase")), get()) }
     single { ProductoApi(get()) }
     single { ProductoRepositorioEnMemoria() }
     single<ProductoRepository> { ProductoRepositorioRest(get(), get()) }
