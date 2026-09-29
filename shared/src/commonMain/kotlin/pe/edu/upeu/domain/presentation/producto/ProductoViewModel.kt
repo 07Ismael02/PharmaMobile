@@ -76,16 +76,28 @@ class ProductoViewModel(
 
             registrarProducto(formulario.nombre, formulario.precio, formulario.stock)
                 .onSuccess { producto ->
-                    val productos = repository.listar()
-                    _uiState.update {
-                        it.copy(
-                            fase = if (productos.isEmpty()) Fase.SinProductos else Fase.ConProductos,
-                            productos = productos,
-                            formulario = FormularioProducto(),
-                            guardando = false,
-                            mensaje = "Producto \"${producto.nombre}\" registrado correctamente"
-                        )
-                    }
+                    runCatching { repository.listar() }
+                        .onSuccess { productos ->
+                            _uiState.update {
+                                it.copy(
+                                    fase = if (productos.isEmpty()) Fase.SinProductos else Fase.ConProductos,
+                                    productos = productos,
+                                    formulario = FormularioProducto(),
+                                    guardando = false,
+                                    mensaje = "Producto \"${producto.nombre}\" registrado correctamente"
+                                )
+                            }
+                        }
+                        .onFailure { error ->
+                            _uiState.update {
+                                it.copy(
+                                    fase = Fase.Error(error.message ?: ERROR_CARGA),
+                                    formulario = FormularioProducto(),
+                                    guardando = false,
+                                    mensaje = "Producto \"${producto.nombre}\" registrado correctamente"
+                                )
+                            }
+                        }
                 }
                 .onFailure { error ->
                     val detalle = error.message ?: ERROR_REGISTRO

@@ -7,14 +7,18 @@ import org.koin.core.module.dsl.viewModelOf
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import pe.edu.upeu.data.remote.crearHttpClient
+import pe.edu.upeu.data.remote.ProductoApi
 import pe.edu.upeu.data.repository.ProductoRepositorioEnMemoria
+import pe.edu.upeu.data.repository.ProductoRepositorioRest
 import pe.edu.upeu.domain.presentation.producto.ProductoViewModel
 import pe.edu.upeu.domain.repository.ProductoRepository
 import pe.edu.upeu.domain.usecase.RegistrarProductoUseCase
 
 val dataModule = module {
     single<HttpClient> { crearHttpClient(get(), get(named("urlBase"))) }
-    single<ProductoRepository> { ProductoRepositorioEnMemoria() }
+    single { ProductoApi(get()) }
+    single { ProductoRepositorioEnMemoria() }
+    single<ProductoRepository> { ProductoRepositorioRest(get(), get()) }
 }
 
 val domainModule = module {
