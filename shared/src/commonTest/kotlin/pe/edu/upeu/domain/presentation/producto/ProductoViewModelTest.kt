@@ -1,8 +1,11 @@
 package pe.edu.upeu.domain.presentation.producto
 
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
@@ -193,6 +196,25 @@ class ProductoViewModelTest {
         }
     }
 
+    @Test
+    fun cancelarCargaPendienteNoProduceFalsoError() = runTest {
+        probarConMainDeTest {
+            val repository = FakeProductoRepositoryListadoPendiente()
+            val viewModel = crearViewModel(repository)
+            runCurrent()
+            assertTrue(repository.iniciada.isCompleted)
+            assertIs<Fase.Cargando>(viewModel.uiState.value.fase)
+
+            viewModel.viewModelScope.cancel()
+            advanceUntilIdle()
+
+            assertTrue(repository.cancelada.isCompleted)
+            assertIs<Fase.Cargando>(viewModel.uiState.value.fase)
+            assertIs<Operacion.Inactiva>(viewModel.uiState.value.operacion)
+            assertEquals(null, viewModel.uiState.value.mensaje)
+        }
+    }
+
     private fun crearViewModel(repository: ProductoRepository) = ProductoViewModel(
         listarProductos = ListarProductosUseCase(repository),
         obtenerProducto = ObtenerProductoUseCase(repository),
@@ -281,4 +303,22 @@ private class FakeProductoRepositoryMutable : BaseFakeProductoRepository() {
         val indice = productos.indexOfFirst { it.id == id }
         productos[indice] = productos[indice].copy(activo = false)
     }
+}
+
+private class FakeProductoRepositoryListadoPendiente : BaseFakeProductoRepository() {
+    val iniciada = CompletableDeferred<Unit>()
+    val cancelada = CompletableDeferred<Unit>()
+    private val respuesta = CompletableDeferred<List<Producto>>()
+
+    override suspend fun listar(): List<Producto> {
+        iniciada.complete(Unit)
+        return try {
+            respuesta.await()
+        } catch (cancelacion: CancellationException) {
+            cancelada.complete(Unit)
+            throw cancelacion
+        }
+    }
+
+    override suspend fun registrar(producto: Producto): Producto = producto
 }
