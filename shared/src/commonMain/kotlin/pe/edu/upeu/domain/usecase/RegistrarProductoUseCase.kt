@@ -6,8 +6,8 @@ import pe.edu.upeu.domain.repository.ProductoRepository
 class RegistrarProductoUseCase(
     private val repository: ProductoRepository
 ) {
-    suspend operator fun invoke(nombre: String, precio: String, stock: String): Result<Producto> =
-        runCatching {
+    suspend operator fun invoke(nombre: String, precio: String, stock: String, categoriaId: Long? = null): Result<Producto> =
+        resultadoDe {
             validarNombre(nombre)?.let { error(it) }
             validarPrecio(precio)?.let { error(it) }
             validarStock(stock)?.let { error(it) }
@@ -22,7 +22,8 @@ class RegistrarProductoUseCase(
                     nombre = nombreLimpio,
                     precio = precioValor,
                     stock = stockValor,
-                    activo = true
+                    activo = true,
+                    categoriaId = categoriaId
                 )
             )
         }
