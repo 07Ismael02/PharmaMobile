@@ -36,10 +36,14 @@ La pantalla Productos consulta `GET /api/v1/productos?pagina=0&tamanio=20` del b
 
 El cliente Ktor compartido usa `ContentNegotiation` con JSON (`ignoreUnknownKeys = true`), `HttpTimeout` (15 segundos por petición y 10 para conectar) y `Logging` en nivel `HEADERS`. Android usa OkHttp y envía esos mensajes a Logcat con la etiqueta `PharmaMobilKtor`; iOS usa Darwin. `ProductoApi` recibe el envoltorio `PaginaResponseDto`, extrae `contenido` y el mapper convierte cada `ProductoResponseDto` al modelo de dominio, incluido `estado` → `activo`. La UI y el ViewModel no consumen DTO directamente.
 
-En Sesión 07, `listar()` consulta REST mientras `registrar()` permanece en memoria; el CRUD REST completo corresponde a Sesión 08. La lista con tres productos del backend se comprobó en Android. La captura de Logcat GET/200 continúa pendiente. iOS está configurado, pero no se ha compilado ni ejecutado desde este equipo Windows.
+En Sesión 07, `listar()` consulta REST mientras `registrar()` permanece en memoria; el CRUD REST completo corresponde a Sesión 08. La lista con tres productos del backend y el registro de Logcat se comprobaron en Android. iOS está configurado, pero no se ha compilado ni ejecutado desde este equipo Windows.
 
 ## CRUD REST de productos - Sesión 08
 
 La rama `feature/crud-productos-logacho` conecta listar, obtener por ID, crear, actualizar y dar de baja lógica mediante el backend propio. La categoría se obtiene de `GET /api/v1/categorias` y se selecciona en el formulario; no se usa un ID supuesto. Tras cada mutación se recarga el listado. Una baja marca `estado=false`, por lo que deja de verse en Activos y permanece en Inactivos.
 
 Los errores HTTP y de red se traducen en la capa de datos a `ErrorApi`: 400 por campo, 404, 409, 5xx, sin conexión y timeout. La cancelación de corrutinas se propaga. El estado `Operacion` separa guardar/eliminar de la fase de carga de la lista. El registro de pruebas y evidencias está en [docs/s08-guia-practica.md](docs/s08-guia-practica.md).
+
+## Manejo de errores
+
+`EjecutarLlamada` es el único punto que traduce respuestas y excepciones de Ktor al dominio: 400 → `Validacion`, 404 → `NoEncontrado`, 409 → `Conflicto`, 5xx → `Servidor`, fallo de E/S → `SinConexion` y timeout → `TiempoAgotado`. `CancellationException` se relanza; no se muestra como error. El ViewModel conserva la lista visible ante errores de una operación y coloca los mensajes de validación del backend bajo su campo. La bitácora de la actividad autónoma S08 está en [docs/s08-actividad-autonoma.md](docs/s08-actividad-autonoma.md).
