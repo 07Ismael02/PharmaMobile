@@ -157,6 +157,42 @@ class ProductoViewModelTest {
         }
     }
 
+    @Test
+    fun obtenerInexistenteMuestraNoEncontradoSinOcultarLista() = runTest {
+        probarConMainDeTest {
+            val repository = FakeProductoRepositoryMutable()
+            repository.registrar(Producto(1, "Producto prueba", 4.5, 8, categoriaId = 1))
+            repository.falloObtener = ErrorApiException(ErrorApi.NoEncontrado)
+            val viewModel = crearViewModel(repository)
+            advanceUntilIdle()
+
+            viewModel.editar(999)
+            advanceUntilIdle()
+
+            assertIs<Fase.ConProductos>(viewModel.uiState.value.fase)
+            assertTrue(assertIs<Operacion.Fallida>(viewModel.uiState.value.operacion).mensaje.contains("ya no existe"))
+            assertEquals(1, viewModel.uiState.value.productos.size)
+        }
+    }
+
+    @Test
+    fun dobleEliminacionConConflictoConservaListaYMensajeDelServidor() = runTest {
+        probarConMainDeTest {
+            val repository = FakeProductoRepositoryMutable()
+            repository.registrar(Producto(1, "Producto prueba", 4.5, 8, activo = false, categoriaId = 1))
+            repository.falloEliminar = ErrorApiException(ErrorApi.Conflicto("El producto ya se encuentra inactivo"))
+            val viewModel = crearViewModel(repository)
+            advanceUntilIdle()
+
+            viewModel.eliminar(1)
+            advanceUntilIdle()
+
+            assertIs<Fase.ConProductos>(viewModel.uiState.value.fase)
+            assertEquals("El producto ya se encuentra inactivo", assertIs<Operacion.Fallida>(viewModel.uiState.value.operacion).mensaje)
+            assertEquals(false, viewModel.uiState.value.productos.single().activo)
+        }
+    }
+
     private fun crearViewModel(repository: ProductoRepository) = ProductoViewModel(
         listarProductos = ListarProductosUseCase(repository),
         obtenerProducto = ObtenerProductoUseCase(repository),
@@ -218,7 +254,14 @@ private class FakeProductoRepositoryMutable : BaseFakeProductoRepository() {
     private val productos = mutableListOf<Producto>()
     var listados = 0
     var falloRegistro: Throwable? = null
+    var falloObtener: Throwable? = null
+    var falloEliminar: Throwable? = null
     var esperaEliminacion: CompletableDeferred<Unit>? = null
+
+    override suspend fun obtener(id: Long): Producto {
+        falloObtener?.let { throw it }
+        return productos.first { it.id == id }
+    }
 
     override suspend fun listar(): List<Producto> {
         listados++
@@ -234,6 +277,7 @@ private class FakeProductoRepositoryMutable : BaseFakeProductoRepository() {
 
     override suspend fun eliminar(id: Long) {
         esperaEliminacion?.await()
+        falloEliminar?.let { throw it }
         val indice = productos.indexOfFirst { it.id == id }
         productos[indice] = productos[indice].copy(activo = false)
     }
