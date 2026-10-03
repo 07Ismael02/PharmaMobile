@@ -2,21 +2,30 @@ package pe.edu.upeu.domain.presentation.producto
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -27,7 +36,9 @@ import pe.edu.upeu.domain.presentation.components.ValidatedTextField
 @Composable
 fun ProductoScreen(viewModel: ProductoViewModel) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var confirmarEliminacion by remember { mutableStateOf<Long?>(null) }
     val formulario = uiState.formulario
+    val operando = uiState.operacion is Operacion.EnCurso
     val tabs = listOf("Activos", "Inactivos", "Bajo stock")
     val productosFiltrados = when (uiState.tabSeleccionada) {
         0 -> uiState.productos.filter { it.activo }
@@ -40,7 +51,7 @@ fun ProductoScreen(viewModel: ProductoViewModel) {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text("PharmaMobil")
-        Text("Registro de Producto")
+        Text(if (uiState.editandoId == null) "Registro de Producto" else "Editar producto #${uiState.editandoId}")
 
         ValidatedTextField(
             value = formulario.nombre,
@@ -61,15 +72,45 @@ fun ProductoScreen(viewModel: ProductoViewModel) {
             error = formulario.errorStock
         )
 
+        Text("Categoría")
+        if (uiState.categorias.isEmpty()) {
+            OutlinedButton(onClick = viewModel::cargarCategorias) { Text("Cargar categorías") }
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                uiState.categorias.forEach { categoria ->
+                    FilterChip(
+                        selected = formulario.categoriaId == categoria.id,
+                        onClick = { viewModel.onCategoriaSeleccionada(categoria.id) },
+                        label = { Text(categoria.nombre) }
+                    )
+                }
+            }
+        }
+        formulario.errorCategoria?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+
         Button(
-            onClick = viewModel::registrar,
-            enabled = !uiState.guardando,
+            onClick = if (uiState.editandoId == null) viewModel::registrar else viewModel::actualizar,
+            enabled = !operando && uiState.categorias.isNotEmpty(),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(if (uiState.guardando) "Registrando..." else "Registrar")
+            Text(when {
+                uiState.guardando -> "Guardando..."
+                uiState.editandoId != null -> "Actualizar"
+                else -> "Registrar"
+            })
+        }
+
+        if (uiState.editandoId != null) {
+            OutlinedButton(onClick = viewModel::cancelarEdicion, enabled = !operando) { Text("Cancelar edición") }
         }
 
         uiState.mensaje?.let { Text(it) }
+        (uiState.operacion as? Operacion.Fallida)?.let {
+            Text(it.mensaje, color = MaterialTheme.colorScheme.error)
+        }
 
         PrimaryTabRow(selectedTabIndex = uiState.tabSeleccionada) {
             tabs.forEachIndexed { index, titulo ->
@@ -94,8 +135,16 @@ fun ProductoScreen(viewModel: ProductoViewModel) {
                 modifier = Modifier.fillMaxWidth().weight(1f),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                if (productosFiltrados.isEmpty()) {
+                    item { Text("No hay productos en esta pestaña.") }
+                }
                 items(items = productosFiltrados, key = { it.id }) { producto ->
-                    ProductoItem(producto)
+                    ProductoItem(
+                        producto = producto,
+                        operacion = uiState.operacion,
+                        onEditar = { viewModel.editar(producto.id) },
+                        onEliminar = { confirmarEliminacion = producto.id }
+                    )
                 }
             }
             is Fase.Error -> Column(
@@ -107,10 +156,32 @@ fun ProductoScreen(viewModel: ProductoViewModel) {
             }
         }
     }
+
+    confirmarEliminacion?.let { id ->
+        AlertDialog(
+            onDismissRequest = { confirmarEliminacion = null },
+            title = { Text("Dar de baja producto") },
+            text = { Text("El producto pasará a Inactivos; no se borrará físicamente.") },
+            confirmButton = {
+                Button(onClick = {
+                    confirmarEliminacion = null
+                    viewModel.eliminar(id)
+                }) { Text("Confirmar") }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { confirmarEliminacion = null }) { Text("Volver") }
+            }
+        )
+    }
 }
 
 @Composable
-private fun ProductoItem(producto: Producto) {
+private fun ProductoItem(
+    producto: Producto,
+    operacion: Operacion,
+    onEditar: () -> Unit,
+    onEliminar: () -> Unit
+) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(12.dp),
@@ -119,11 +190,25 @@ private fun ProductoItem(producto: Producto) {
             Text(producto.nombre, style = MaterialTheme.typography.titleMedium)
             Text("Precio: S/ ${producto.precio}")
             Text("Stock: ${producto.stock}")
+            producto.categoriaId?.let { Text("Categoría ID: $it") }
             Text(
                 text = if (producto.activo) "Activo" else "Inactivo",
                 color = if (producto.activo) MaterialTheme.colorScheme.primary
                 else MaterialTheme.colorScheme.error
             )
+            if (operacion is Operacion.EnCurso && operacion.productoId == producto.id) {
+                CircularProgressIndicator()
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = onEditar, enabled = operacion !is Operacion.EnCurso) {
+                    Text("Editar")
+                }
+                if (producto.activo) {
+                    OutlinedButton(onClick = onEliminar, enabled = operacion !is Operacion.EnCurso) {
+                        Text("Dar de baja")
+                    }
+                }
+            }
         }
     }
 }
