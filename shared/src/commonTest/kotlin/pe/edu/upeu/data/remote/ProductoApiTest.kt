@@ -2,6 +2,7 @@ package pe.edu.upeu.data.remote
 
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
+import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
@@ -9,6 +10,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.test.runTest
+import kotlinx.io.IOException
 import pe.edu.upeu.data.remote.dto.ProductoRequestDto
 import pe.edu.upeu.domain.error.ErrorApi
 import pe.edu.upeu.domain.error.ErrorApiException
@@ -101,5 +103,16 @@ class ProductoApiTest {
             propagada = true
         }
         assertTrue(propagada)
+    }
+
+    @Test
+    fun distingueSinConexionYTiempoAgotado() = runTest {
+        val sinConexion = ejecutarLlamada<Unit> { throw IOException("Red no disponible") }.exceptionOrNull()
+        assertIs<ErrorApi.SinConexion>(assertIs<ErrorApiException>(sinConexion).error)
+
+        val agotado = ejecutarLlamada<Unit> {
+            throw HttpRequestTimeoutException("http://localhost/api/v1/productos", 1L, null)
+        }.exceptionOrNull()
+        assertIs<ErrorApi.TiempoAgotado>(assertIs<ErrorApiException>(agotado).error)
     }
 }
