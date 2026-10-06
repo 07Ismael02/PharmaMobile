@@ -47,3 +47,9 @@ Los errores HTTP y de red se traducen en la capa de datos a `ErrorApi`: 400 por 
 ## Manejo de errores
 
 `EjecutarLlamada` es el único punto que traduce respuestas y excepciones de Ktor al dominio: 400 → `Validacion`, 404 → `NoEncontrado`, 409 → `Conflicto`, 5xx → `Servidor`, fallo de E/S → `SinConexion` y timeout → `TiempoAgotado`. `CancellationException` se relanza; no se muestra como error. El ViewModel conserva la lista visible ante errores de una operación y coloca los mensajes de validación del backend bajo su campo. La bitácora de la actividad autónoma S08 está en [docs/s08-actividad-autonoma.md](docs/s08-actividad-autonoma.md).
+
+## Capacidades nativas - Sesión 09
+
+`formatearSoles` se declara con `expect` en `commonMain` y se implementa con `actual` en `androidMain`; el mapeo a `ProductoUi` prepara el precio para mostrarlo. El texto para compartir se construye en código común desde `Producto` y reutiliza ese formateador. `Compartidor` es un contrato común; Koin proporciona `CompartidorAndroid`, que abre el selector nativo mediante `ACTION_SEND` desde el contexto de aplicación.
+
+Como esta versión no tiene una pantalla de detalle independiente, el botón **Compartir** se ubica en cada tarjeta del listado de Productos, junto a las acciones CRUD. El selector nativo se verificó manualmente en Pixel 9a con el texto de Paracetamol 500 mg; la captura se conserva fuera del repositorio. Por indicación docente y por trabajar en Windows, no se compila, ejecuta ni presenta evidencia iOS; se conserva su estructura existente.
