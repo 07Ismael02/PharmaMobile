@@ -105,7 +105,7 @@ class ProductoViewModel(
     }
 
     fun cancelarEdicion() {
-        _uiState.update { it.copy(editandoId = null, formulario = FormularioProducto(), mensaje = null) }
+        _uiState.update { it.copy(editandoId = null, formulario = FormularioProducto(), mensaje = null, mensajeExito = null) }
     }
 
     fun actualizar() {
@@ -147,12 +147,11 @@ class ProductoViewModel(
             onSuccess = { productos ->
                 _uiState.update {
                     it.copy(
-                        fase = if (productos.isEmpty()) Fase.SinProductos else Fase.ConProductos,
-                        productos = productos,
+                        fase = productos.toFase(),
                         formulario = FormularioProducto(categoriaId = it.formulario.categoriaId),
                         editandoId = null,
                         operacion = Operacion.Inactiva,
-                        mensaje = mensaje
+                        mensajeExito = mensaje
                     )
                 }
             },
@@ -167,17 +166,20 @@ class ProductoViewModel(
     private fun mostrarProductos(productos: List<Producto>) {
         _uiState.update {
             it.copy(
-                fase = if (productos.isEmpty()) Fase.SinProductos else Fase.ConProductos,
-                productos = productos
+                fase = productos.toFase()
             )
         }
     }
+
+    private fun List<Producto>.toFase(): Fase =
+        if (isEmpty()) Fase.SinProductos else Fase.ConProductos(map { it.toUi() })
 
     private fun iniciarOperacion(tipo: TipoOperacion, id: Long? = null) {
         _uiState.update {
             it.copy(
                 operacion = Operacion.EnCurso(tipo, id),
                 mensaje = null,
+                mensajeExito = null,
                 formulario = it.formulario.copy(
                     errorNombre = null, errorPrecio = null, errorStock = null, errorCategoria = null
                 )
@@ -231,7 +233,7 @@ class ProductoViewModel(
     }
 
     private fun actualizarFormulario(transformar: FormularioProducto.() -> FormularioProducto) {
-        _uiState.update { it.copy(formulario = it.formulario.transformar(), mensaje = null) }
+        _uiState.update { it.copy(formulario = it.formulario.transformar(), mensaje = null, mensajeExito = null) }
     }
 
     private fun FormularioProducto.conError(detalle: String) = when (detalle) {

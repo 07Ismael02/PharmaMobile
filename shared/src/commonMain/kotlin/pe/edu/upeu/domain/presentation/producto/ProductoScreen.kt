@@ -29,7 +29,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import pe.edu.upeu.domain.model.Producto
 import pe.edu.upeu.domain.presentation.components.ValidatedTextField
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -40,12 +39,6 @@ fun ProductoScreen(viewModel: ProductoViewModel) {
     val formulario = uiState.formulario
     val operando = uiState.operacion is Operacion.EnCurso
     val tabs = listOf("Activos", "Inactivos", "Bajo stock")
-    val productosFiltrados = when (uiState.tabSeleccionada) {
-        0 -> uiState.productos.filter { it.activo }
-        1 -> uiState.productos.filter { !it.activo }
-        else -> uiState.productos.filter { it.requiereReposicion }
-    }
-
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -108,6 +101,7 @@ fun ProductoScreen(viewModel: ProductoViewModel) {
         }
 
         uiState.mensaje?.let { Text(it) }
+        uiState.mensajeExito?.let { Text(it) }
         (uiState.operacion as? Operacion.Fallida)?.let {
             Text(it.mensaje, color = MaterialTheme.colorScheme.error)
         }
@@ -131,10 +125,15 @@ fun ProductoScreen(viewModel: ProductoViewModel) {
                 Text("Cargando productos...")
             }
             Fase.SinProductos -> Text("No hay productos registrados.")
-            Fase.ConProductos -> LazyColumn(
+            is Fase.ConProductos -> LazyColumn(
                 modifier = Modifier.fillMaxWidth().weight(1f),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                val productosFiltrados = when (uiState.tabSeleccionada) {
+                    0 -> fase.productos.filter { it.activo }
+                    1 -> fase.productos.filter { !it.activo }
+                    else -> fase.productos.filter { it.requiereReposicion }
+                }
                 if (productosFiltrados.isEmpty()) {
                     item { Text("No hay productos en esta pestaña.") }
                 }
@@ -177,7 +176,7 @@ fun ProductoScreen(viewModel: ProductoViewModel) {
 
 @Composable
 private fun ProductoItem(
-    producto: Producto,
+    producto: ProductoUi,
     operacion: Operacion,
     onEditar: () -> Unit,
     onEliminar: () -> Unit

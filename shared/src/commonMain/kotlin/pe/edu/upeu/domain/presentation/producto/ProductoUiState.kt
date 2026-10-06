@@ -1,12 +1,15 @@
 package pe.edu.upeu.domain.presentation.producto
 
-import pe.edu.upeu.domain.model.Producto
 import pe.edu.upeu.domain.model.Categoria
 
 sealed interface Fase {
     data object Cargando : Fase
     data object SinProductos : Fase
-    data object ConProductos : Fase
+    data class ConProductos(val productos: List<ProductoUi>) : Fase {
+        init {
+            require(productos.isNotEmpty())
+        }
+    }
     data class Error(val detalle: String) : Fase
 }
 
@@ -32,12 +35,12 @@ data class FormularioProducto(
 
 data class ProductoUiState(
     val fase: Fase = Fase.Cargando,
-    val productos: List<Producto> = emptyList(),
     val categorias: List<Categoria> = emptyList(),
     val formulario: FormularioProducto = FormularioProducto(),
     val operacion: Operacion = Operacion.Inactiva,
     val editandoId: Long? = null,
     val mensaje: String? = null,
+    val mensajeExito: String? = null,
     val tabSeleccionada: Int = 0
 ) {
     val guardando: Boolean
