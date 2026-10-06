@@ -187,7 +187,7 @@ private fun ProductoItem(
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(producto.nombre, style = MaterialTheme.typography.titleMedium)
-            Text("Precio: S/ ${producto.precio}")
+            Text("Precio: ${producto.precioFormateado}")
             Text("Stock: ${producto.stock}")
             producto.categoriaId?.let { Text("Categoría ID: $it") }
             Text(
