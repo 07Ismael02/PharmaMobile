@@ -39,7 +39,6 @@ class ProductoViewModelTest {
             advanceUntilIdle()
 
             assertIs<Fase.SinProductos>(viewModel.uiState.value.fase)
-            assertTrue(viewModel.uiState.value.productos.isEmpty())
         }
     }
 
@@ -55,9 +54,8 @@ class ProductoViewModelTest {
 
             advanceUntilIdle()
 
-            assertIs<Fase.ConProductos>(viewModel.uiState.value.fase)
-            assertEquals(3, viewModel.uiState.value.productos.size)
-            assertEquals(productosEsperados, viewModel.uiState.value.productos)
+            val fase = assertIs<Fase.ConProductos>(viewModel.uiState.value.fase)
+            assertEquals(productosEsperados.map { it.toUi() }, fase.productos)
         }
     }
 
@@ -108,10 +106,11 @@ class ProductoViewModelTest {
             viewModel.registrar()
             advanceUntilIdle()
 
-            assertIs<Fase.ConProductos>(viewModel.uiState.value.fase)
+            val fase = assertIs<Fase.ConProductos>(viewModel.uiState.value.fase)
             assertIs<Operacion.Inactiva>(viewModel.uiState.value.operacion)
-            assertEquals(1, viewModel.uiState.value.productos.size)
+            assertEquals(1, fase.productos.size)
             assertTrue(repository.listados >= 2)
+            assertTrue(viewModel.uiState.value.mensajeExito?.contains("registrado") == true)
         }
     }
 
@@ -149,14 +148,40 @@ class ProductoViewModelTest {
 
             viewModel.eliminar(1)
             runCurrent()
-            assertIs<Fase.ConProductos>(viewModel.uiState.value.fase)
+            val faseEnCurso = assertIs<Fase.ConProductos>(viewModel.uiState.value.fase)
+            assertEquals(1, faseEnCurso.productos.size)
             assertIs<Operacion.EnCurso>(viewModel.uiState.value.operacion)
 
             barrera.complete(Unit)
             advanceUntilIdle()
             assertIs<Operacion.Inactiva>(viewModel.uiState.value.operacion)
-            assertEquals(false, viewModel.uiState.value.productos.single().activo)
+            assertEquals(false, assertIs<Fase.ConProductos>(viewModel.uiState.value.fase).productos.single().activo)
             assertTrue(repository.listados >= 2)
+        }
+    }
+
+    @Test
+    fun actualizarRecargaListaYConservaFaseVisible() = runTest {
+        probarConMainDeTest {
+            val repository = FakeProductoRepositoryMutable()
+            repository.registrar(Producto(1, "Producto prueba", 4.5, 8, categoriaId = 1))
+            val viewModel = crearViewModel(repository)
+            advanceUntilIdle()
+
+            viewModel.editar(1)
+            advanceUntilIdle()
+            viewModel.onPrecioChange("5.0")
+            val listadosAntes = repository.listados
+            viewModel.actualizar()
+            runCurrent()
+            assertIs<Fase.ConProductos>(viewModel.uiState.value.fase)
+            advanceUntilIdle()
+
+            val fase = assertIs<Fase.ConProductos>(viewModel.uiState.value.fase)
+            assertEquals(5.0, fase.productos.single().precio)
+            assertIs<Operacion.Inactiva>(viewModel.uiState.value.operacion)
+            assertTrue(repository.listados > listadosAntes)
+            assertTrue(viewModel.uiState.value.mensajeExito?.contains("actualizado") == true)
         }
     }
 
@@ -172,9 +197,9 @@ class ProductoViewModelTest {
             viewModel.editar(999)
             advanceUntilIdle()
 
-            assertIs<Fase.ConProductos>(viewModel.uiState.value.fase)
+            val fase = assertIs<Fase.ConProductos>(viewModel.uiState.value.fase)
             assertTrue(assertIs<Operacion.Fallida>(viewModel.uiState.value.operacion).mensaje.contains("ya no existe"))
-            assertEquals(1, viewModel.uiState.value.productos.size)
+            assertEquals(1, fase.productos.size)
         }
     }
 
@@ -190,9 +215,9 @@ class ProductoViewModelTest {
             viewModel.eliminar(1)
             advanceUntilIdle()
 
-            assertIs<Fase.ConProductos>(viewModel.uiState.value.fase)
+            val fase = assertIs<Fase.ConProductos>(viewModel.uiState.value.fase)
             assertEquals("El producto ya se encuentra inactivo", assertIs<Operacion.Fallida>(viewModel.uiState.value.operacion).mensaje)
-            assertEquals(false, viewModel.uiState.value.productos.single().activo)
+            assertEquals(false, fase.productos.single().activo)
         }
     }
 
@@ -295,6 +320,12 @@ private class FakeProductoRepositoryMutable : BaseFakeProductoRepository() {
         val creado = producto.copy(id = (productos.maxOfOrNull { it.id } ?: 0L) + 1)
         productos += creado
         return creado
+    }
+
+    override suspend fun actualizar(producto: Producto): Producto {
+        val indice = productos.indexOfFirst { it.id == producto.id }
+        productos[indice] = producto
+        return producto
     }
 
     override suspend fun eliminar(id: Long) {
