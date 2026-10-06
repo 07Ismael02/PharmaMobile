@@ -16,6 +16,8 @@ import pe.edu.upeu.domain.usecase.ListarCategoriasUseCase
 import pe.edu.upeu.domain.usecase.ListarProductosUseCase
 import pe.edu.upeu.domain.usecase.ObtenerProductoUseCase
 import pe.edu.upeu.domain.usecase.RegistrarProductoUseCase
+import pe.edu.upeu.domain.usecase.comoTextoParaCompartir
+import pe.edu.upeu.pharmamobil.domain.platform.Compartidor
 
 class ProductoViewModel(
     private val listarProductos: ListarProductosUseCase,
@@ -23,8 +25,10 @@ class ProductoViewModel(
     private val registrarProducto: RegistrarProductoUseCase,
     private val actualizarProducto: ActualizarProductoUseCase,
     private val eliminarProducto: EliminarProductoUseCase,
-    private val listarCategorias: ListarCategoriasUseCase
+    private val listarCategorias: ListarCategoriasUseCase,
+    private val compartidor: Compartidor
 ) : ViewModel() {
+    private var productosPorId: Map<Long, Producto> = emptyMap()
     private val _uiState = MutableStateFlow(ProductoUiState())
     val uiState: StateFlow<ProductoUiState> = _uiState.asStateFlow()
 
@@ -40,6 +44,11 @@ class ProductoViewModel(
 
     fun onTabSeleccionada(indice: Int) {
         _uiState.update { it.copy(tabSeleccionada = indice) }
+    }
+
+    fun compartir(id: Long) {
+        val producto = productosPorId[id] ?: return
+        compartidor.compartir(producto.comoTextoParaCompartir())
     }
 
     fun cargarProductos() {
@@ -171,8 +180,10 @@ class ProductoViewModel(
         }
     }
 
-    private fun List<Producto>.toFase(): Fase =
-        if (isEmpty()) Fase.SinProductos else Fase.ConProductos(map { it.toUi() })
+    private fun List<Producto>.toFase(): Fase {
+        productosPorId = associateBy { it.id }
+        return if (isEmpty()) Fase.SinProductos else Fase.ConProductos(map { it.toUi() })
+    }
 
     private fun iniciarOperacion(tipo: TipoOperacion, id: Long? = null) {
         _uiState.update {

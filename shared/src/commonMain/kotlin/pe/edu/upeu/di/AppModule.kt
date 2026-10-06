@@ -43,8 +43,8 @@ val presentationModule = module {
 
 expect val platformModule: Module
 
-fun initKoin() {
+fun initKoin(extraModules: List<Module> = emptyList()) {
     startKoin {
-        modules(dataModule, domainModule, presentationModule, platformModule)
+        modules(listOf(dataModule, domainModule, presentationModule, platformModule) + extraModules)
     }
 }

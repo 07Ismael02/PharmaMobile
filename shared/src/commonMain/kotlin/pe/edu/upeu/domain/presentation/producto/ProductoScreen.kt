@@ -142,7 +142,8 @@ fun ProductoScreen(viewModel: ProductoViewModel) {
                         producto = producto,
                         operacion = uiState.operacion,
                         onEditar = { viewModel.editar(producto.id) },
-                        onEliminar = { confirmarEliminacion = producto.id }
+                        onEliminar = { confirmarEliminacion = producto.id },
+                        onCompartir = { viewModel.compartir(producto.id) }
                     )
                 }
             }
@@ -179,7 +180,8 @@ private fun ProductoItem(
     producto: ProductoUi,
     operacion: Operacion,
     onEditar: () -> Unit,
-    onEliminar: () -> Unit
+    onEliminar: () -> Unit,
+    onCompartir: () -> Unit
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
@@ -207,6 +209,9 @@ private fun ProductoItem(
                         Text("Dar de baja")
                     }
                 }
+            }
+            OutlinedButton(onClick = onCompartir, enabled = operacion !is Operacion.EnCurso) {
+                Text("Compartir")
             }
         }
     }

@@ -23,6 +23,8 @@ import pe.edu.upeu.domain.usecase.ObtenerProductoUseCase
 import pe.edu.upeu.domain.usecase.ActualizarProductoUseCase
 import pe.edu.upeu.domain.usecase.EliminarProductoUseCase
 import pe.edu.upeu.domain.usecase.ListarCategoriasUseCase
+import pe.edu.upeu.domain.usecase.comoTextoParaCompartir
+import pe.edu.upeu.pharmamobil.domain.platform.Compartidor
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -30,6 +32,21 @@ import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ProductoViewModelTest {
+
+    @Test
+    fun compartirProductoVisibleDelegaTextoComunAlCompartidor() = runTest {
+        probarConMainDeTest {
+            val producto = Producto(1L, "Paracetamol 500 mg", 4.5, 120)
+            val compartidor = FakeCompartidor()
+            val viewModel = crearViewModel(FakeProductoRepositoryConProductos(listOf(producto)), compartidor)
+
+            advanceUntilIdle()
+            viewModel.compartir(producto.id)
+
+            assertEquals(producto.comoTextoParaCompartir(), compartidor.ultimoTexto)
+            assertEquals(4.5, producto.precio)
+        }
+    }
 
     @Test
     fun repositorioVacioProduceFaseSinProductos() = runTest {
@@ -240,13 +257,17 @@ class ProductoViewModelTest {
         }
     }
 
-    private fun crearViewModel(repository: ProductoRepository) = ProductoViewModel(
+    private fun crearViewModel(
+        repository: ProductoRepository,
+        compartidor: Compartidor = FakeCompartidor()
+    ) = ProductoViewModel(
         listarProductos = ListarProductosUseCase(repository),
         obtenerProducto = ObtenerProductoUseCase(repository),
         registrarProducto = RegistrarProductoUseCase(repository),
         actualizarProducto = ActualizarProductoUseCase(repository),
         eliminarProducto = EliminarProductoUseCase(repository),
-        listarCategorias = ListarCategoriasUseCase(repository)
+        listarCategorias = ListarCategoriasUseCase(repository),
+        compartidor = compartidor
     )
 
     private suspend fun kotlinx.coroutines.test.TestScope.probarConMainDeTest(
@@ -258,6 +279,14 @@ class ProductoViewModelTest {
         } finally {
             Dispatchers.resetMain()
         }
+    }
+}
+
+private class FakeCompartidor : Compartidor {
+    var ultimoTexto: String? = null
+
+    override fun compartir(texto: String) {
+        ultimoTexto = texto
     }
 }
 
