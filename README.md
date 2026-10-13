@@ -53,3 +53,14 @@ Los errores HTTP y de red se traducen en la capa de datos a `ErrorApi`: 400 por 
 `formatearSoles` se declara con `expect` en `commonMain` y se implementa con `actual` en `androidMain`; el mapeo a `ProductoUi` prepara el precio para mostrarlo. El texto para compartir se construye en código común desde `Producto` y reutiliza ese formateador. `Compartidor` es un contrato común; Koin proporciona `CompartidorAndroid`, que abre el selector nativo mediante `ACTION_SEND` desde el contexto de aplicación.
 
 Como esta versión no tiene una pantalla de detalle independiente, el botón **Compartir** se ubica en cada tarjeta del listado de Productos, junto a las acciones CRUD. El selector nativo se verificó manualmente en Pixel 9a con el texto de Paracetamol 500 mg; la captura se conserva fuera del repositorio. Por indicación docente y por trabajar en Windows, no se compila, ejecuta ni presenta evidencia iOS; se conserva su estructura existente.
+
+### Código específico de plataforma
+
+| Capacidad | Código común | Android | iOS |
+| --- | --- | --- | --- |
+| Formato de soles | `shared/src/commonMain/kotlin/pe/edu/upeu/pharmamobil/platform/Formato.kt` | `shared/src/androidMain/kotlin/pe/edu/upeu/pharmamobil/platform/Formato.android.kt` (`NumberFormat`, locale peruano) | `shared/src/iosMain/kotlin/pe/edu/upeu/pharmamobil/platform/Formato.ios.kt` (`NSNumberFormatter`, locale `es_PE`) |
+| Compartir producto | `shared/src/commonMain/kotlin/pe/edu/upeu/pharmamobil/domain/platform/Compartidor.kt` | `shared/src/androidMain/kotlin/pe/edu/upeu/pharmamobil/platform/CompartidorAndroid.kt` (`Intent.ACTION_SEND`) | `shared/src/iosMain/kotlin/pe/edu/upeu/pharmamobil/platform/CompartidorIos.kt` (`UIActivityViewController`, registrado en `PlatformModule.ios.kt`) |
+| Módulo de plataforma | `shared/src/commonMain/kotlin/pe/edu/upeu/di/AppModule.kt` | `shared/src/androidMain/kotlin/pe/edu/upeu/di/PlatformModule.android.kt` (OkHttp, URL de emulador y `CompartidorAndroid`) | `shared/src/iosMain/kotlin/pe/edu/upeu/di/PlatformModule.ios.kt` (Darwin y URL local) |
+| Información del dispositivo | `shared/src/commonMain/kotlin/pe/edu/upeu/pharmamobil/platform/InfoDispositivo.kt` | `shared/src/androidMain/kotlin/pe/edu/upeu/pharmamobil/platform/InfoDispositivo.android.kt` (`Build.VERSION.RELEASE`) | `shared/src/iosMain/kotlin/pe/edu/upeu/pharmamobil/platform/InfoDispositivo.ios.kt` (`UIDevice.currentDevice.systemVersion`) |
+
+La opción **Acerca de** del menú lateral y del carril de navegación muestra sistema operativo y versión mediante `InfoDispositivo`. Solo se han ejecutado pruebas y compilación Android en este equipo Windows. La existencia del código iOS de `InfoDispositivo` no constituye evidencia de compilación ni ejecución iOS.
