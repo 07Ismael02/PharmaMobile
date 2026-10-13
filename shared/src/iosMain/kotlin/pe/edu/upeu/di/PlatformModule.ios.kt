@@ -5,8 +5,11 @@ import io.ktor.client.engine.darwin.Darwin
 import io.ktor.client.plugins.logging.Logger
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
+import pe.edu.upeu.pharmamobil.domain.platform.Compartidor
+import pe.edu.upeu.pharmamobil.platform.CompartidorIos
 
 actual val platformModule = module {
+    single<Compartidor> { CompartidorIos() }
     single<HttpClientEngine> { Darwin.create() }
     single(named("urlBase")) { "http://localhost:8080/api/v1/" }
     single<Logger> { Logger.SIMPLE }
