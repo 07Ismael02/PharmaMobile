@@ -19,9 +19,21 @@ import pe.edu.upeu.domain.usecase.ObtenerProductoUseCase
 import pe.edu.upeu.domain.usecase.ActualizarProductoUseCase
 import pe.edu.upeu.domain.usecase.EliminarProductoUseCase
 import pe.edu.upeu.domain.usecase.ListarCategoriasUseCase
+import pe.edu.upeu.data.auth.AlmacenSeguro
+import pe.edu.upeu.data.auth.AuthRepositorioRest
+import pe.edu.upeu.domain.auth.AuthRepository
+import pe.edu.upeu.domain.auth.CoordinadorSesion
+import pe.edu.upeu.domain.auth.IniciarSesionUseCase
+import pe.edu.upeu.domain.auth.RestaurarSesionUseCase
+import pe.edu.upeu.domain.auth.CerrarSesionUseCase
+import pe.edu.upeu.domain.presentation.auth.SesionViewModel
 
 val dataModule = module {
-    single<HttpClient> { crearHttpClient(get(), get(named("urlBase")), get()) }
+    single { CoordinadorSesion() }
+    single<HttpClient> {
+        crearHttpClient(get(), get(named("urlBase")), get(), get<AlmacenSeguro>(), get(), get(named("esDepuracion")))
+    }
+    single<AuthRepository> { AuthRepositorioRest(get(), get(), get()) }
     single { ProductoApi(get()) }
     single { CategoriaApi(get()) }
     single { ProductoRepositorioEnMemoria() }
@@ -29,6 +41,9 @@ val dataModule = module {
 }
 
 val domainModule = module {
+    factory { IniciarSesionUseCase(get()) }
+    factory { RestaurarSesionUseCase(get()) }
+    factory { CerrarSesionUseCase(get()) }
     factory { RegistrarProductoUseCase(get()) }
     factory { ListarProductosUseCase(get()) }
     factory { ObtenerProductoUseCase(get()) }
@@ -38,6 +53,7 @@ val domainModule = module {
 }
 
 val presentationModule = module {
+    viewModelOf(::SesionViewModel)
     viewModelOf(::ProductoViewModel)
 }
 

@@ -7,6 +7,8 @@ sealed interface ErrorApi {
     data object Servidor : ErrorApi
     data object SinConexion : ErrorApi
     data object TiempoAgotado : ErrorApi
+    data object SesionExpirada : ErrorApi
+    data object SinPermiso : ErrorApi
 }
 
 class ErrorApiException(val error: ErrorApi) : Exception()
