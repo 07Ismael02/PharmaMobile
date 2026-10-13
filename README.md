@@ -64,3 +64,30 @@ Como esta versión no tiene una pantalla de detalle independiente, el botón **C
 | Información del dispositivo | `shared/src/commonMain/kotlin/pe/edu/upeu/pharmamobil/platform/InfoDispositivo.kt` | `shared/src/androidMain/kotlin/pe/edu/upeu/pharmamobil/platform/InfoDispositivo.android.kt` (`Build.VERSION.RELEASE`) | `shared/src/iosMain/kotlin/pe/edu/upeu/pharmamobil/platform/InfoDispositivo.ios.kt` (`UIDevice.currentDevice.systemVersion`) |
 
 La opción **Acerca de** del menú lateral y del carril de navegación muestra sistema operativo y versión mediante `InfoDispositivo`. Solo se han ejecutado pruebas y compilación Android en este equipo Windows. La existencia del código iOS de `InfoDispositivo` no constituye evidencia de compilación ni ejecución iOS.
+
+## Autenticación - Sesión 10
+
+PharmaMobil se autentica contra `POST /api/v1/auth/login` de PharmaSoft y guarda el JWT recibido mediante la interfaz común `AlmacenSeguro`:
+
+| Plataforma | Implementación | Mecanismo |
+| --- | --- | --- |
+| Android | `shared/src/androidMain/kotlin/pe/edu/upeu/data/auth/AlmacenSeguroAndroid.kt` | AES-256-GCM con llave no exportable en Android Keystore; en preferencias solo queda el texto cifrado. |
+| iOS | `shared/src/iosMain/kotlin/pe/edu/upeu/data/auth/AlmacenSeguroIos.kt` | Keychain (`kSecClassGenericPassword`, `AfterFirstUnlockThisDeviceOnly`). Compilado para `iosArm64`/`iosSimulatorArm64` desde Windows; no ejecutado por falta de macOS/Xcode. |
+
+- `crearHttpClient` instala el plugin **Auth** (`bearer`): `loadTokens` lee el almacén y `sendWithoutRequest` envía el token desde la primera petición salvo en `/auth/login`. Ninguna llamada escribe `Authorization` a mano.
+- El plugin **Logging** usa `LogLevel.HEADERS` solo en compilaciones depurables y `sanitizeHeader` muestra `Authorization: ***`.
+- Tras el login y al cerrar sesión se invoca `clearToken()` del proveedor bearer para no reutilizar un token en caché.
+- Al arrancar, `sesionGuardada()` valida el token con `GET /api/v1/auth/me`; si es válido la sesión se restaura sin pedir credenciales.
+- **401**: borra el token y vuelve al login con el aviso “La sesión expiró”. **403**: conserva la sesión y muestra “Acceso denegado para esta operación”.
+- No existe endpoint de renovación: al expirar el token (3600 s) se repite el login.
+- La interfaz oculta acciones según permisos: registrar/editar/eliminar productos requiere `CATALOGO_ESCRIBIR`; Clientes requiere `CLIENTES_LEER`; Pedidos requiere `VENTAS_LEER`.
+
+### Usuarios de prueba (cargados por Flyway V3 en PharmaSoft)
+
+| Usuario | Rol | Permisos |
+| --- | --- | --- |
+| `admin` | ADMIN | Los ocho permisos del sistema. |
+| `vendedor` | VENDEDOR | `CATALOGO_LEER`, `CLIENTES_LEER`, `CLIENTES_ESCRIBIR`, `VENTAS_LEER`, `VENTAS_REGISTRAR`. |
+| `almacen` | ALMACENERO | `CATALOGO_LEER`, `CATALOGO_ESCRIBIR`. |
+
+Las contraseñas de prueba son las publicadas en la Guía Práctica N.° 10 (sección 4.1); son exclusivas del entorno local de laboratorio.
