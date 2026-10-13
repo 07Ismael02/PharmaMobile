@@ -1,9 +1,12 @@
+@file:OptIn(kotlinx.cinterop.ExperimentalForeignApi::class)
+
 package pe.edu.upeu.pharmamobil.platform
 
 import pe.edu.upeu.pharmamobil.domain.platform.Compartidor
 import platform.UIKit.UIActivityViewController
 import platform.UIKit.UIApplication
 import platform.UIKit.UIViewController
+import platform.UIKit.popoverPresentationController
 
 class CompartidorIos : Compartidor {
     override fun compartir(texto: String) {
