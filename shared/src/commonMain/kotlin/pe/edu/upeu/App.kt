@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
@@ -44,6 +45,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import pe.edu.upeu.domain.presentation.cliente.ClienteScreen
+import pe.edu.upeu.domain.presentation.acerca.AcercaDeScreen
 import pe.edu.upeu.domain.presentation.producto.ProductoScreen
 import pe.edu.upeu.navigation.Screen
 import pe.edu.upeu.domain.presentation.inicio.InicioScreen
@@ -168,6 +170,12 @@ private fun DrawerContent(
         onClick = { onScreenSelected(Screen.Pedidos) },
         icon = { Icon(Icons.Default.ShoppingCart, contentDescription = "Pedidos") }
     )
+    DrawerItem(
+        label = "Acerca de",
+        selected = pantallaActual is Screen.AcercaDe,
+        onClick = { onScreenSelected(Screen.AcercaDe) },
+        icon = { Icon(Icons.Default.Info, contentDescription = "Acerca de") }
+    )
 
     Spacer(modifier = Modifier.height(8.dp))
 
@@ -241,6 +249,12 @@ private fun AppNavigationRail(
             icon = { Icon(Icons.Default.ShoppingCart, contentDescription = "Pedidos") },
             label = "Pedidos"
         )
+        RailItem(
+            selected = pantallaActual is Screen.AcercaDe,
+            onClick = { onScreenSelected(Screen.AcercaDe) },
+            icon = { Icon(Icons.Default.Info, contentDescription = "Acerca de") },
+            label = "Acerca de"
+        )
 
         Spacer(modifier = Modifier.weight(1f))
         Text(
@@ -306,6 +320,7 @@ private fun AppScaffold(
                     text = "Pantalla de pedidos en construcción",
                     modifier = Modifier.padding(16.dp)
                 )
+                Screen.AcercaDe -> AcercaDeScreen()
             }
         }
     }
@@ -335,5 +350,6 @@ private fun tituloPantalla(screen: Screen): String {
         Screen.Productos -> "Productos"
         Screen.Clientes -> "Clientes"
         Screen.Pedidos -> "Pedidos"
+        Screen.AcercaDe -> "Acerca de"
     }
 }
