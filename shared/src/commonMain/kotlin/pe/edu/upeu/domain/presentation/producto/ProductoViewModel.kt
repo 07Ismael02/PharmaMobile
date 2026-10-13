@@ -262,6 +262,8 @@ class ProductoViewModel(
         ErrorApi.Servidor -> "El servidor no pudo completar la operación."
         ErrorApi.SinConexion -> "Sin conexión con el backend. Reintente."
         ErrorApi.TiempoAgotado -> "La solicitud tardó demasiado. Reintente."
+        ErrorApi.SesionExpirada -> "La sesión expiró. Inicie sesión nuevamente."
+        ErrorApi.SinPermiso -> "Acceso denegado para esta operación."
         is ErrorApi.Validacion -> "Revise los datos del formulario."
         null -> "No se pudo completar la operación."
     }

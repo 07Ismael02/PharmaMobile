@@ -33,7 +33,7 @@ import pe.edu.upeu.domain.presentation.components.ValidatedTextField
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProductoScreen(viewModel: ProductoViewModel) {
+fun ProductoScreen(viewModel: ProductoViewModel, puedeEditar: Boolean = true) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var confirmarEliminacion by remember { mutableStateOf<Long?>(null) }
     val formulario = uiState.formulario
@@ -44,6 +44,7 @@ fun ProductoScreen(viewModel: ProductoViewModel) {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text("PharmaMobil")
+        if (puedeEditar) {
         Text(if (uiState.editandoId == null) "Registro de Producto" else "Editar producto #${uiState.editandoId}")
 
         ValidatedTextField(
@@ -99,6 +100,7 @@ fun ProductoScreen(viewModel: ProductoViewModel) {
         if (uiState.editandoId != null) {
             OutlinedButton(onClick = viewModel::cancelarEdicion, enabled = !operando) { Text("Cancelar edición") }
         }
+        }
 
         uiState.mensaje?.let { Text(it) }
         uiState.mensajeExito?.let { Text(it) }
@@ -143,7 +145,8 @@ fun ProductoScreen(viewModel: ProductoViewModel) {
                         operacion = uiState.operacion,
                         onEditar = { viewModel.editar(producto.id) },
                         onEliminar = { confirmarEliminacion = producto.id },
-                        onCompartir = { viewModel.compartir(producto.id) }
+                        onCompartir = { viewModel.compartir(producto.id) },
+                        puedeEditar = puedeEditar
                     )
                 }
             }
@@ -157,7 +160,7 @@ fun ProductoScreen(viewModel: ProductoViewModel) {
         }
     }
 
-    confirmarEliminacion?.let { id ->
+    if (puedeEditar) confirmarEliminacion?.let { id ->
         AlertDialog(
             onDismissRequest = { confirmarEliminacion = null },
             title = { Text("Dar de baja producto") },
@@ -181,7 +184,8 @@ private fun ProductoItem(
     operacion: Operacion,
     onEditar: () -> Unit,
     onEliminar: () -> Unit,
-    onCompartir: () -> Unit
+    onCompartir: () -> Unit,
+    puedeEditar: Boolean
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
@@ -200,7 +204,7 @@ private fun ProductoItem(
             if (operacion is Operacion.EnCurso && operacion.productoId == producto.id) {
                 CircularProgressIndicator()
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (puedeEditar) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = onEditar, enabled = operacion !is Operacion.EnCurso) {
                     Text("Editar")
                 }

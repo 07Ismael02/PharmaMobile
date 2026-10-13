@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -32,9 +33,11 @@ import androidx.compose.material3.PermanentNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,10 +46,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import pe.edu.upeu.domain.presentation.cliente.ClienteScreen
 import pe.edu.upeu.domain.presentation.acerca.AcercaDeScreen
 import pe.edu.upeu.domain.presentation.producto.ProductoScreen
+import pe.edu.upeu.domain.presentation.auth.LoginScreen
+import pe.edu.upeu.domain.presentation.auth.SesionViewModel
 import pe.edu.upeu.navigation.Screen
 import pe.edu.upeu.domain.presentation.inicio.InicioScreen
 import pe.edu.upeu.theme.PharmaMobilTheme
@@ -55,9 +61,15 @@ import org.koin.compose.viewmodel.koinViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun App() {
+    val sesionViewModel: SesionViewModel = koinViewModel()
+    val estadoSesion by sesionViewModel.estado.collectAsStateWithLifecycle()
+    val procesando by sesionViewModel.procesando.collectAsStateWithLifecycle()
+    val permisos = estadoSesion.sesion?.permisos.orEmpty()
+    val puedeEditar = "CATALOGO_ESCRIBIR" in permisos
     var pantallaActual by remember {
         mutableStateOf<Screen>(Screen.Inicio)
     }
+    LaunchedEffect(estadoSesion.sesion?.usuario) { pantallaActual = Screen.Inicio }
 
     var darkTheme by remember {
         mutableStateOf(false)
@@ -69,6 +81,11 @@ fun App() {
     val scope = rememberCoroutineScope()
 
     PharmaMobilTheme(darkTheme = darkTheme) {
+        if (estadoSesion.cargando) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+        } else if (estadoSesion.sesion == null) {
+            LoginScreen(estadoSesion.mensaje, procesando, sesionViewModel::iniciar)
+        } else {
         BoxWithConstraints {
             when {
                 maxWidth < 600.dp -> {
@@ -83,7 +100,9 @@ fun App() {
                                         scope.launch { drawerState.close() }
                                     },
                                     darkTheme = darkTheme,
-                                    onDarkThemeChange = { darkTheme = it }
+                                    onDarkThemeChange = { darkTheme = it },
+                                    permisos = permisos,
+                                    onCerrarSesion = sesionViewModel::cerrar
                                 )
                             }
                         }
@@ -92,7 +111,8 @@ fun App() {
                             pantallaActual = pantallaActual,
                             onMenuClick = {
                                 scope.launch { drawerState.open() }
-                            }
+                            },
+                            puedeEditar = puedeEditar
                         )
                     }
                 }
@@ -103,12 +123,15 @@ fun App() {
                             pantallaActual = pantallaActual,
                             onScreenSelected = { pantallaActual = it },
                             darkTheme = darkTheme,
-                            onDarkThemeChange = { darkTheme = it }
+                            onDarkThemeChange = { darkTheme = it },
+                            permisos = permisos,
+                            onCerrarSesion = sesionViewModel::cerrar
                         )
                         AppScaffold(
                             pantallaActual = pantallaActual,
                             onMenuClick = null,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
+                            puedeEditar = puedeEditar
                         )
                     }
                 }
@@ -121,18 +144,22 @@ fun App() {
                                     pantallaActual = pantallaActual,
                                     onScreenSelected = { pantallaActual = it },
                                     darkTheme = darkTheme,
-                                    onDarkThemeChange = { darkTheme = it }
+                                    onDarkThemeChange = { darkTheme = it },
+                                    permisos = permisos,
+                                    onCerrarSesion = sesionViewModel::cerrar
                                 )
                             }
                         }
                     ) {
                         AppScaffold(
                             pantallaActual = pantallaActual,
-                            onMenuClick = null
+                            onMenuClick = null,
+                            puedeEditar = puedeEditar
                         )
                     }
                 }
             }
+        }
         }
     }
 }
@@ -142,7 +169,9 @@ private fun DrawerContent(
     pantallaActual: Screen,
     onScreenSelected: (Screen) -> Unit,
     darkTheme: Boolean,
-    onDarkThemeChange: (Boolean) -> Unit
+    onDarkThemeChange: (Boolean) -> Unit,
+    permisos: Set<String>,
+    onCerrarSesion: () -> Unit
 ) {
     DrawerHeader()
 
@@ -158,13 +187,13 @@ private fun DrawerContent(
         onClick = { onScreenSelected(Screen.Productos) },
         icon = { Icon(Icons.Default.Medication, contentDescription = "Productos") }
     )
-    DrawerItem(
+    if ("CLIENTES_LEER" in permisos) DrawerItem(
         label = "Clientes",
         selected = pantallaActual is Screen.Clientes,
         onClick = { onScreenSelected(Screen.Clientes) },
         icon = { Icon(Icons.Default.Person, contentDescription = "Clientes") }
     )
-    DrawerItem(
+    if ("VENTAS_LEER" in permisos) DrawerItem(
         label = "Pedidos",
         selected = pantallaActual is Screen.Pedidos,
         onClick = { onScreenSelected(Screen.Pedidos) },
@@ -178,6 +207,7 @@ private fun DrawerContent(
     )
 
     Spacer(modifier = Modifier.height(8.dp))
+    TextButton(onClick = onCerrarSesion) { Text("Cerrar sesión") }
 
     Row(
         modifier = Modifier
@@ -214,7 +244,9 @@ private fun AppNavigationRail(
     pantallaActual: Screen,
     onScreenSelected: (Screen) -> Unit,
     darkTheme: Boolean,
-    onDarkThemeChange: (Boolean) -> Unit
+    onDarkThemeChange: (Boolean) -> Unit,
+    permisos: Set<String>,
+    onCerrarSesion: () -> Unit
 ) {
     NavigationRail(
         header = {
@@ -237,13 +269,13 @@ private fun AppNavigationRail(
             icon = { Icon(Icons.Default.Medication, contentDescription = "Productos") },
             label = "Productos"
         )
-        RailItem(
+        if ("CLIENTES_LEER" in permisos) RailItem(
             selected = pantallaActual is Screen.Clientes,
             onClick = { onScreenSelected(Screen.Clientes) },
             icon = { Icon(Icons.Default.Person, contentDescription = "Clientes") },
             label = "Clientes"
         )
-        RailItem(
+        if ("VENTAS_LEER" in permisos) RailItem(
             selected = pantallaActual is Screen.Pedidos,
             onClick = { onScreenSelected(Screen.Pedidos) },
             icon = { Icon(Icons.Default.ShoppingCart, contentDescription = "Pedidos") },
@@ -257,6 +289,7 @@ private fun AppNavigationRail(
         )
 
         Spacer(modifier = Modifier.weight(1f))
+        TextButton(onClick = onCerrarSesion) { Text("Salir") }
         Text(
             text = "Oscuro",
             style = MaterialTheme.typography.labelLarge
@@ -287,7 +320,8 @@ private fun RailItem(
 private fun AppScaffold(
     pantallaActual: Screen,
     onMenuClick: (() -> Unit)?,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    puedeEditar: Boolean
 ) {
     Scaffold(
         modifier = modifier,
@@ -314,7 +348,7 @@ private fun AppScaffold(
         ) {
             when (pantallaActual) {
                 Screen.Inicio -> InicioScreen()
-                Screen.Productos -> ProductoScreen(viewModel = koinViewModel())
+                Screen.Productos -> ProductoScreen(viewModel = koinViewModel(), puedeEditar = puedeEditar)
                 Screen.Clientes -> ClienteScreen()
                 Screen.Pedidos -> Text(
                     text = "Pantalla de pedidos en construcción",
