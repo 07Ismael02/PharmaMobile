@@ -17,9 +17,14 @@ class ProductoLocal(base: PharmaDb) {
         .mapToList(Dispatchers.Default)
         .map { filas -> filas.map { it.aDominio() } }
 
-    fun pendientes(): List<Producto> = consultas.listarPendientes()
+    /** Solo los registros nuevos que aún no iniciaron un POST. */
+    fun pendientes(): List<Producto> = consultas.listarPendientesPorEnviar()
         .executeAsList()
         .map { it.aDominio() }
+
+    /** Incluye los envíos ambiguos: nunca se borran ni reenvían por coincidencia de nombre. */
+    fun pendientesEnRevision(): List<Producto> = consultas.listarPendientes()
+        .executeAsList().filter { it.intentoEnvio == 1L }.map { it.aDominio() }
 
     fun listar(): List<Producto> = consultas.listarTodos()
         .executeAsList()
@@ -40,7 +45,8 @@ class ProductoLocal(base: PharmaDb) {
             stock = local.stock.toLong(),
             activo = if (local.activo) 1L else 0L,
             categoriaId = local.categoriaId,
-            pendiente = 1L
+            pendiente = 1L,
+            intentoEnvio = 0L
         )
         local
     }
@@ -57,7 +63,8 @@ class ProductoLocal(base: PharmaDb) {
                     stock = producto.stock.toLong(),
                     activo = if (producto.activo) 1L else 0L,
                     categoriaId = producto.categoriaId,
-                    pendiente = 0L
+                    pendiente = 0L,
+                    intentoEnvio = 1L
                 )
             }
         }
@@ -66,13 +73,29 @@ class ProductoLocal(base: PharmaDb) {
     fun confirmarPendiente(idLocal: Long, confirmado: Producto) {
         require(idLocal < 0 && confirmado.id > 0) { "La confirmación debe contener un ID real positivo" }
         consultas.transaction {
-            check(consultas.buscarPorId(idLocal).executeAsOneOrNull()?.pendiente == 1L) {
-                "El producto local ya no está pendiente"
+            check(consultas.buscarPorId(idLocal).executeAsOneOrNull()?.let {
+                it.pendiente == 1L && it.intentoEnvio == 1L
+            } == true) {
+                "El producto local no tiene un envío confirmado pendiente"
             }
             consultas.borrarPendiente(idLocal)
             insertarSincronizado(confirmado)
         }
     }
+
+    /** La marca se confirma en SQLite antes del POST; si se pierde la respuesta no se reenvía. */
+    fun marcarIntentoEnvio(idLocal: Long) = consultas.transaction {
+        check(consultas.buscarPorId(idLocal).executeAsOneOrNull()?.let {
+            it.pendiente == 1L && it.intentoEnvio == 0L
+        } == true) { "El pendiente ya fue enviado o requiere revisión" }
+        consultas.marcarIntentoEnvio(idLocal)
+        check(consultas.buscarPorId(idLocal).executeAsOneOrNull()?.let {
+            it.pendiente == 1L && it.intentoEnvio == 1L
+        } == true) { "El pendiente ya no está disponible para enviar" }
+    }
+
+    /** Solo para rechazos de seguridad (401/403), que ocurren antes de crear el recurso. */
+    fun revertirIntentoEnvio(idLocal: Long) = consultas.revertirIntentoEnvio(idLocal)
 
     fun guardarSincronizado(producto: Producto) {
         require(producto.id > 0) { "El producto del servidor debe tener ID positivo" }
@@ -92,7 +115,8 @@ class ProductoLocal(base: PharmaDb) {
             stock = producto.stock.toLong(),
             activo = if (producto.activo) 1L else 0L,
             categoriaId = producto.categoriaId,
-            pendiente = 0L
+            pendiente = 0L,
+            intentoEnvio = 1L
         )
     }
 }

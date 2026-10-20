@@ -1,0 +1,3 @@
+-- Los pendientes previos pueden haber llegado al servidor sin respuesta HTTP.
+-- Se conservan y no se reenvían automáticamente hasta revisión explícita.
+ALTER TABLE producto ADD COLUMN intentoEnvio INTEGER NOT NULL DEFAULT 1;

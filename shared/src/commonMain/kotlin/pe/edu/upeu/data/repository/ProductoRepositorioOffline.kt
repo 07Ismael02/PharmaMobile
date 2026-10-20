@@ -32,7 +32,7 @@ class ProductoRepositorioOffline(
     override fun observarUltimaSincronizacion(): Flow<String?> =
         estadoSync?.observarUltimaSincronizacion() ?: super.observarUltimaSincronizacion()
 
-    /** Compatibilidad con el ViewModel actual hasta que observe el Flow en el paso 5. */
+    /** Compatibilidad para consultas puntuales; la interfaz observa el Flow local. */
     override suspend fun listar(): List<Producto> {
         try {
             sincronizar()
@@ -72,10 +72,27 @@ class ProductoRepositorioOffline(
     }
 
     private suspend fun subirPendientes() {
-        local.pendientes().forEach { pendiente ->
+        val pendientes = local.pendientes()
+        if (pendientes.isNotEmpty()) {
+            // Si el host ya es inaccesible, no marcamos como ambiguo un POST que no se intentó.
+            // Una caída posterior a esta comprobación sigue siendo ambigua y no se reenvía.
             comprobarAmbito()
-            val confirmado = ejecutarLlamada { remoto.crear(pendiente.toRequest()).toDomain() }
-                .getOrThrow()
+            ejecutarLlamada { remoto.listar(0, 1) }.getOrThrow()
+        }
+        pendientes.forEach { pendiente ->
+            comprobarAmbito()
+            local.marcarIntentoEnvio(pendiente.id)
+            comprobarAmbito()
+            val confirmado = try {
+                ejecutarLlamada { remoto.crear(pendiente.toRequest()).toDomain() }.getOrThrow()
+            } catch (error: ErrorApiException) {
+                // 401/403 los emite Spring Security antes del controlador: no hubo creación remota.
+                // Cualquier otro fallo (red, timeout, 409, 5xx) queda en revisión sin reenvío.
+                if (error.error == ErrorApi.SesionExpirada || error.error == ErrorApi.SinPermiso) {
+                    local.revertirIntentoEnvio(pendiente.id)
+                }
+                throw error
+            }
             comprobarAmbito()
             local.confirmarPendiente(pendiente.id, confirmado)
         }

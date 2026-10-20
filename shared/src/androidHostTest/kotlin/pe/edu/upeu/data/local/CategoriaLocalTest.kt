@@ -64,13 +64,29 @@ class CategoriaLocalTest {
             driver.execute(null, """INSERT INTO producto
                 (id, nombre, precio, stock, activo, categoriaId, pendiente)
                 VALUES (-1, 'Pendiente previo', 4.5, 7, 1, 1, 1)""", 0)
-            assertEquals(3L, PharmaDb.Schema.version)
+            driver.execute(null, """INSERT INTO producto
+                (id, nombre, precio, stock, activo, categoriaId, pendiente)
+                VALUES (-2, 'Segundo pendiente', 4.5, 7, 1, 1, 1)""", 0)
+            driver.execute(null, """INSERT INTO producto
+                (id, nombre, precio, stock, activo, categoriaId, pendiente)
+                VALUES (-3, 'Tercer pendiente', 4.5, 7, 1, 1, 1)""", 0)
+            driver.execute(null, """INSERT INTO producto
+                (id, nombre, precio, stock, activo, categoriaId, pendiente)
+                VALUES (41, 'Confirmado', 4.5, 7, 1, 1, 0)""", 0)
+            driver.execute(null, """INSERT INTO producto
+                (id, nombre, precio, stock, activo, categoriaId, pendiente)
+                VALUES (42, 'Confirmado dos', 4.5, 7, 1, 1, 0)""", 0)
+            assertEquals(4L, PharmaDb.Schema.version)
             PharmaDb.Schema.migrate(driver, 1, PharmaDb.Schema.version)
             val base = PharmaDb(driver)
-            assertEquals(-1L, ProductoLocal(base).pendientes().single().id)
+            assertEquals(setOf(-1L, -2L, -3L),
+                ProductoLocal(base).pendientesEnRevision().map { it.id }.toSet())
+            assertTrue(ProductoLocal(base).pendientes().isEmpty())
+            assertEquals(setOf(-1L, -2L, -3L, 41L, 42L),
+                ProductoLocal(base).listar().map { it.id }.toSet())
             assertTrue(CategoriaLocal(base).listar().isEmpty())
             CategoriaLocal(base).reemplazarSincronizadas(listOf(Categoria(1, "Analgésicos", true)))
-            assertFalse(ProductoLocal(base).pendientes().isEmpty())
+            assertFalse(ProductoLocal(base).pendientesEnRevision().isEmpty())
         }
     }
 }

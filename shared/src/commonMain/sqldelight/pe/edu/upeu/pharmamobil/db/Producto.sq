@@ -5,7 +5,8 @@ CREATE TABLE producto (
     stock       INTEGER NOT NULL,
     activo      INTEGER NOT NULL DEFAULT 1,
     categoriaId INTEGER,
-    pendiente   INTEGER NOT NULL DEFAULT 0
+    pendiente   INTEGER NOT NULL DEFAULT 0,
+    intentoEnvio INTEGER NOT NULL DEFAULT 1
 );
 
 listarTodos:
@@ -14,13 +15,23 @@ SELECT * FROM producto ORDER BY nombre ASC;
 listarPendientes:
 SELECT * FROM producto WHERE pendiente = 1;
 
+listarPendientesPorEnviar:
+SELECT * FROM producto WHERE pendiente = 1 AND intentoEnvio = 0 ORDER BY id DESC;
+
 buscarPorId:
 SELECT * FROM producto WHERE id = ?;
 
 insertar:
 INSERT OR REPLACE INTO producto
-    (id, nombre, precio, stock, activo, categoriaId, pendiente)
-VALUES (?, ?, ?, ?, ?, ?, ?);
+    (id, nombre, precio, stock, activo, categoriaId, pendiente, intentoEnvio)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+marcarIntentoEnvio:
+UPDATE producto SET intentoEnvio = 1 WHERE id = ? AND pendiente = 1 AND intentoEnvio = 0;
+
+-- Solo tras un rechazo HTTP definitivo (401/403): el servidor no creó el producto.
+revertirIntentoEnvio:
+UPDATE producto SET intentoEnvio = 0 WHERE id = ? AND pendiente = 1 AND intentoEnvio = 1;
 
 borrarSincronizados:
 DELETE FROM producto WHERE pendiente = 0;
