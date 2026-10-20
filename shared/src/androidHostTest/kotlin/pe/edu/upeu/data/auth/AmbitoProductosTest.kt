@@ -15,6 +15,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import pe.edu.upeu.data.local.CreadorDeDriver
+import pe.edu.upeu.data.local.CategoriaLocal
 import pe.edu.upeu.data.remote.CreadorMotorHttp
 import pe.edu.upeu.data.remote.crearHttpClient
 import pe.edu.upeu.domain.auth.CoordinadorSesion
@@ -184,6 +185,31 @@ class AmbitoProductosTest {
         assertEquals(listOf<String?>("Bearer token-B"), cabeceras)
         assertEquals("token-B", almacen.leerToken())
         assertEquals("token-B", coordinador.estado.value.sesion?.token)
+        gestor.revocar()
+    }
+
+    @Test
+    fun categoriaDeRespuestaTardiaNoEntraEnNuevoAmbito() = runBlocking {
+        val recibido = CompletableDeferred<Unit>()
+        val continuar = CompletableDeferred<Unit>()
+        val drivers = DriversMemoria()
+        val gestor = gestor(VinculacionMemoria(), drivers,
+            object : CreadorMotorHttp {
+                override fun crear(): HttpClientEngine = MockEngine {
+                    recibido.complete(Unit)
+                    continuar.await()
+                    respond("""[{"id":1,"nombre":"Cuenta anterior","estado":true}]""",
+                        headers = headersOf(HttpHeaders.ContentType, "application/json"))
+                }
+            })
+        assertTrue(gestor.activar(sesion("admin", "token-A")))
+        val solicitud = async { runCatching { gestor.capturarRepositorio().listarCategorias() } }
+        withTimeout(3_000) { recibido.await() }
+        gestor.revocar()
+        assertTrue(gestor.activar(sesion("admin", "token-B")))
+        continuar.complete(Unit)
+        assertTrue(solicitud.isCancelled || solicitud.await().isFailure)
+        assertTrue(CategoriaLocal(PharmaDb(drivers.abiertos.last())).listar().isEmpty())
         gestor.revocar()
     }
 

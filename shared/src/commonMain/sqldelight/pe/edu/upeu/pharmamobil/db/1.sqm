@@ -1,0 +1,5 @@
+CREATE TABLE categoria (
+    id     INTEGER NOT NULL PRIMARY KEY,
+    nombre TEXT    NOT NULL,
+    activa INTEGER NOT NULL
+);

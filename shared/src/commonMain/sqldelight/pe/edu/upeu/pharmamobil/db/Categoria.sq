@@ -1,0 +1,14 @@
+CREATE TABLE categoria (
+    id     INTEGER NOT NULL PRIMARY KEY,
+    nombre TEXT    NOT NULL,
+    activa INTEGER NOT NULL
+);
+
+listarCategorias:
+SELECT * FROM categoria ORDER BY nombre ASC;
+
+insertarCategoria:
+INSERT OR REPLACE INTO categoria (id, nombre, activa) VALUES (?, ?, ?);
+
+borrarCategorias:
+DELETE FROM categoria;

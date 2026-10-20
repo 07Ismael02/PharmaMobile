@@ -17,6 +17,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import pe.edu.upeu.data.local.CreadorDeDriver
+import pe.edu.upeu.data.local.CategoriaLocal
 import pe.edu.upeu.data.local.ProductoLocal
 import pe.edu.upeu.data.remote.CategoriaApi
 import pe.edu.upeu.data.remote.CreadorMotorHttp
@@ -134,8 +135,10 @@ private class AmbitoProductos(
     private val vigente = MutableStateFlow(true)
     private val mutex = Mutex()
     private val trabajos = mutableSetOf<Job>()
+    private val base = PharmaDb(driver)
     private val repositorio = ProductoRepositorioOffline(
-        ProductoLocal(PharmaDb(driver)), ProductoApi(cliente), CategoriaApi(cliente), ::comprobarVigencia
+        ProductoLocal(base), ProductoApi(cliente), CategoriaApi(cliente), ::comprobarVigencia,
+        CategoriaLocal(base)
     )
 
     fun comprobarVigencia() {

@@ -3,6 +3,7 @@ package pe.edu.upeu.data.repository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.sync.Mutex
 import pe.edu.upeu.data.local.ProductoLocal
+import pe.edu.upeu.data.local.CategoriaLocal
 import pe.edu.upeu.data.mapper.toDomain
 import pe.edu.upeu.data.mapper.toRequest
 import pe.edu.upeu.data.remote.CategoriaApi
@@ -20,7 +21,8 @@ class ProductoRepositorioOffline(
     private val local: ProductoLocal,
     private val remoto: ProductoApi,
     private val categorias: CategoriaApi,
-    private val comprobarAmbito: () -> Unit = {}
+    private val comprobarAmbito: () -> Unit = {},
+    private val categoriasLocales: CategoriaLocal? = null
 ) : ProductoRepository {
     private val mutexSincronizacion = Mutex()
 
@@ -126,8 +128,19 @@ class ProductoRepositorioOffline(
         local.marcarInactivo(id)
     }
 
-    override suspend fun listarCategorias(): List<Categoria> =
-        ejecutarLlamada { categorias.listar().map { it.toDomain() } }.getOrThrow()
+    override suspend fun listarCategorias(): List<Categoria> {
+        comprobarAmbito()
+        return try {
+            val recibidas = ejecutarLlamada { categorias.listar().map { it.toDomain() } }.getOrThrow()
+            comprobarAmbito()
+            categoriasLocales?.reemplazarSincronizadas(recibidas)
+            recibidas
+        } catch (error: ErrorApiException) {
+            comprobarAmbito()
+            if (error.error != ErrorApi.SinConexion && error.error != ErrorApi.TiempoAgotado) throw error
+            categoriasLocales?.listar()?.takeIf { it.isNotEmpty() } ?: throw error
+        }
+    }
 
     private fun requireIdServidor(id: Long) {
         if (id <= 0) throw ErrorApiException(
