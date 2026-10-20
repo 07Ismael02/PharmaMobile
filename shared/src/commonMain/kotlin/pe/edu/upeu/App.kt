@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -83,6 +84,16 @@ fun App() {
     PharmaMobilTheme(darkTheme = darkTheme) {
         if (estadoSesion.cargando) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+        } else if (estadoSesion.restauracionPendiente) {
+            Column(
+                modifier = Modifier.fillMaxSize().padding(24.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(estadoSesion.mensaje ?: "No se pudo comprobar la sesión.")
+                Button(onClick = sesionViewModel::restaurar) { Text("Reintentar") }
+                TextButton(onClick = sesionViewModel::cerrar) { Text("Cerrar sesión") }
+            }
         } else if (estadoSesion.sesion == null) {
             LoginScreen(estadoSesion.mensaje, procesando, sesionViewModel::iniciar)
         } else {
@@ -112,7 +123,8 @@ fun App() {
                             onMenuClick = {
                                 scope.launch { drawerState.open() }
                             },
-                            puedeEditar = puedeEditar
+                            puedeEditar = puedeEditar,
+                            generacionSesion = estadoSesion.generacion
                         )
                     }
                 }
@@ -131,7 +143,8 @@ fun App() {
                             pantallaActual = pantallaActual,
                             onMenuClick = null,
                             modifier = Modifier.weight(1f),
-                            puedeEditar = puedeEditar
+                            puedeEditar = puedeEditar,
+                            generacionSesion = estadoSesion.generacion
                         )
                     }
                 }
@@ -154,7 +167,8 @@ fun App() {
                         AppScaffold(
                             pantallaActual = pantallaActual,
                             onMenuClick = null,
-                            puedeEditar = puedeEditar
+                            puedeEditar = puedeEditar,
+                            generacionSesion = estadoSesion.generacion
                         )
                     }
                 }
@@ -321,7 +335,8 @@ private fun AppScaffold(
     pantallaActual: Screen,
     onMenuClick: (() -> Unit)?,
     modifier: Modifier = Modifier,
-    puedeEditar: Boolean
+    puedeEditar: Boolean,
+    generacionSesion: Long
 ) {
     Scaffold(
         modifier = modifier,
@@ -348,7 +363,10 @@ private fun AppScaffold(
         ) {
             when (pantallaActual) {
                 Screen.Inicio -> InicioScreen()
-                Screen.Productos -> ProductoScreen(viewModel = koinViewModel(), puedeEditar = puedeEditar)
+                Screen.Productos -> ProductoScreen(
+                    viewModel = koinViewModel(key = "producto-sesion-$generacionSesion"),
+                    puedeEditar = puedeEditar
+                )
                 Screen.Clientes -> ClienteScreen()
                 Screen.Pedidos -> Text(
                     text = "Pantalla de pedidos en construcción",
