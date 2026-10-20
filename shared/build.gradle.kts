@@ -79,6 +79,7 @@ kotlin {
             implementation(libs.ktor.client.logging)
             implementation(libs.ktor.client.auth)
             implementation(libs.sqldelight.runtime)
+            implementation(libs.sqldelight.coroutines)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
