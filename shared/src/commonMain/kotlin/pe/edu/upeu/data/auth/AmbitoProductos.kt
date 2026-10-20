@@ -18,6 +18,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import pe.edu.upeu.data.local.CreadorDeDriver
 import pe.edu.upeu.data.local.CategoriaLocal
+import pe.edu.upeu.data.local.EstadoSyncLocal
 import pe.edu.upeu.data.local.ProductoLocal
 import pe.edu.upeu.data.remote.CategoriaApi
 import pe.edu.upeu.data.remote.CreadorMotorHttp
@@ -138,7 +139,7 @@ private class AmbitoProductos(
     private val base = PharmaDb(driver)
     private val repositorio = ProductoRepositorioOffline(
         ProductoLocal(base), ProductoApi(cliente), CategoriaApi(cliente), ::comprobarVigencia,
-        CategoriaLocal(base)
+        CategoriaLocal(base), EstadoSyncLocal(base)
     )
 
     fun comprobarVigencia() {
@@ -173,6 +174,9 @@ private class AmbitoProductos(
 private class RepositorioDeAmbito(private val ambito: AmbitoProductos) : ProductoRepository {
     override fun observar(): Flow<List<Producto>> = flow {
         ambito.ejecutar { emitAll(observar()) }
+    }
+    override fun observarUltimaSincronizacion(): Flow<String?> = flow {
+        ambito.ejecutar { emitAll(observarUltimaSincronizacion()) }
     }
     override suspend fun sincronizar() = ambito.ejecutar { sincronizar() }
     override suspend fun registrar(producto: Producto) = ambito.ejecutar { registrar(producto) }

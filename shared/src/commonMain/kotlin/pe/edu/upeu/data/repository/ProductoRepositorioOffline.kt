@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.sync.Mutex
 import pe.edu.upeu.data.local.ProductoLocal
 import pe.edu.upeu.data.local.CategoriaLocal
+import pe.edu.upeu.data.local.EstadoSyncLocal
 import pe.edu.upeu.data.mapper.toDomain
 import pe.edu.upeu.data.mapper.toRequest
 import pe.edu.upeu.data.remote.CategoriaApi
@@ -22,11 +23,14 @@ class ProductoRepositorioOffline(
     private val remoto: ProductoApi,
     private val categorias: CategoriaApi,
     private val comprobarAmbito: () -> Unit = {},
-    private val categoriasLocales: CategoriaLocal? = null
+    private val categoriasLocales: CategoriaLocal? = null,
+    private val estadoSync: EstadoSyncLocal? = null
 ) : ProductoRepository {
     private val mutexSincronizacion = Mutex()
 
     override fun observar(): Flow<List<Producto>> = local.observar()
+    override fun observarUltimaSincronizacion(): Flow<String?> =
+        estadoSync?.observarUltimaSincronizacion() ?: super.observarUltimaSincronizacion()
 
     /** Compatibilidad con el ViewModel actual hasta que observe el Flow en el paso 5. */
     override suspend fun listar(): List<Producto> {
@@ -60,6 +64,8 @@ class ProductoRepositorioOffline(
             val productos = descargarCatalogo()
             comprobarAmbito()
             local.reemplazarSincronizados(productos)
+            comprobarAmbito()
+            estadoSync?.registrarExito()
         } finally {
             mutexSincronizacion.unlock()
         }

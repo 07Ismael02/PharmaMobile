@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import pe.edu.upeu.domain.error.ErrorApi
 import pe.edu.upeu.domain.error.ErrorApiException
@@ -33,6 +34,20 @@ class ProductoViewModel(
     val uiState: StateFlow<ProductoUiState> = _uiState.asStateFlow()
 
     init {
+        viewModelScope.launch {
+            try {
+                listarProductos.observar().collect(::mostrarProductos)
+            } catch (cancelacion: CancellationException) {
+                throw cancelacion
+            } catch (fallo: Exception) {
+                _uiState.update { it.copy(fase = Fase.Error(mensajeDe(fallo))) }
+            }
+        }
+        viewModelScope.launch {
+            listarProductos.observarUltimaSincronizacion().collect { fecha ->
+                _uiState.update { it.copy(ultimaSincronizacion = fecha) }
+            }
+        }
         cargarProductos()
         cargarCategorias()
     }
@@ -53,10 +68,18 @@ class ProductoViewModel(
 
     fun cargarProductos() {
         viewModelScope.launch {
-            _uiState.update { it.copy(fase = Fase.Cargando) }
-            listarProductos().fold(
-                onSuccess = { productos -> mostrarProductos(productos) },
-                onFailure = { fallo -> _uiState.update { it.copy(fase = Fase.Error(mensajeDe(fallo))) } }
+            _uiState.update { it.copy(sincronizando = true, avisoConexion = null) }
+            listarProductos.sincronizar().fold(
+                onSuccess = { _uiState.update { it.copy(sincronizando = false, avisoConexion = null) } },
+                onFailure = { fallo ->
+                    val error = (fallo as? ErrorApiException)?.error
+                    _uiState.update {
+                        it.copy(sincronizando = false,
+                            avisoConexion = if (error == ErrorApi.SinConexion || error == ErrorApi.TiempoAgotado)
+                                "Sin conexión. Se muestran los productos guardados; los pendientes se sincronizarán al reintentar."
+                            else mensajeDe(fallo))
+                    }
+                }
             )
         }
     }
@@ -65,7 +88,11 @@ class ProductoViewModel(
         viewModelScope.launch {
             listarCategorias().fold(
                 onSuccess = { categorias -> _uiState.update { it.copy(categorias = categorias.filter { c -> c.activa }) } },
-                onFailure = { fallo -> _uiState.update { it.copy(operacion = Operacion.Fallida("No se pudieron cargar las categorías. ${mensajeDe(fallo)}")) } }
+                onFailure = { fallo -> _uiState.update { it.copy(operacion = Operacion.Fallida(
+                    if (it.categorias.isEmpty())
+                        "No hay categorías guardadas. Conéctese para descargarlas antes de registrar productos. ${mensajeDe(fallo)}"
+                    else "No se pudieron actualizar las categorías. ${mensajeDe(fallo)}"
+                )) } }
             )
         }
     }
@@ -81,7 +108,7 @@ class ProductoViewModel(
         viewModelScope.launch {
             iniciarOperacion(TipoOperacion.Crear)
             registrarProducto(formulario.nombre, formulario.precio, formulario.stock, formulario.categoriaId).fold(
-                onSuccess = { producto -> refrescarTrasMutacion("Producto \"${producto.nombre}\" registrado correctamente") },
+                onSuccess = { producto -> refrescarTrasMutacion("Producto \"${producto.nombre}\" guardado; se sincronizará cuando haya conexión.") },
                 onFailure = ::manejarFallo
             )
         }
@@ -151,25 +178,15 @@ class ProductoViewModel(
         }
     }
 
-    private suspend fun refrescarTrasMutacion(mensaje: String) {
-        listarProductos().fold(
-            onSuccess = { productos ->
-                _uiState.update {
-                    it.copy(
-                        fase = productos.toFase(),
-                        formulario = FormularioProducto(categoriaId = it.formulario.categoriaId),
-                        editandoId = null,
-                        operacion = Operacion.Inactiva,
-                        mensajeExito = mensaje
-                    )
-                }
-            },
-            onFailure = { fallo ->
-                _uiState.update {
-                    it.copy(operacion = Operacion.Fallida("La operación se completó, pero no se pudo refrescar la lista: ${mensajeDe(fallo)}"))
-                }
-            }
-        )
+    private fun refrescarTrasMutacion(mensaje: String) {
+        _uiState.update {
+            it.copy(
+                formulario = FormularioProducto(categoriaId = it.formulario.categoriaId),
+                editandoId = null,
+                operacion = Operacion.Inactiva,
+                mensajeExito = mensaje
+            )
+        }
     }
 
     private fun mostrarProductos(productos: List<Producto>) {

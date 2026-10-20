@@ -6,6 +6,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
@@ -77,6 +79,21 @@ class ProductoViewModelTest {
     }
 
     @Test
+    fun sinConexionConservaProductosLocalesYExponeAviso() = runTest {
+        probarConMainDeTest {
+            val pendiente = Producto(-1L, "Producto pendiente", 4.5, 7, categoriaId = 1)
+            val viewModel = crearViewModel(FakeProductoRepositoryOffline(pendiente))
+
+            advanceUntilIdle()
+
+            val fase = assertIs<Fase.ConProductos>(viewModel.uiState.value.fase)
+            assertEquals(-1L, fase.productos.single().id)
+            assertTrue(viewModel.uiState.value.avisoConexion?.contains("Sin conexión") == true)
+            assertEquals(false, viewModel.uiState.value.sincronizando)
+        }
+    }
+
+    @Test
     fun errorAlListarProduceFaseErrorConDetalleCoherente() = runTest {
         probarConMainDeTest {
             val viewModel = crearViewModel(FakeProductoRepositoryError())
@@ -126,8 +143,8 @@ class ProductoViewModelTest {
             val fase = assertIs<Fase.ConProductos>(viewModel.uiState.value.fase)
             assertIs<Operacion.Inactiva>(viewModel.uiState.value.operacion)
             assertEquals(1, fase.productos.size)
-            assertTrue(repository.listados >= 2)
-            assertTrue(viewModel.uiState.value.mensajeExito?.contains("registrado") == true)
+            assertEquals(1, repository.listados)
+            assertTrue(viewModel.uiState.value.mensajeExito?.contains("guardado") == true)
         }
     }
 
@@ -173,7 +190,7 @@ class ProductoViewModelTest {
             advanceUntilIdle()
             assertIs<Operacion.Inactiva>(viewModel.uiState.value.operacion)
             assertEquals(false, assertIs<Fase.ConProductos>(viewModel.uiState.value.fase).productos.single().activo)
-            assertTrue(repository.listados >= 2)
+            assertEquals(1, repository.listados)
         }
     }
 
@@ -197,7 +214,7 @@ class ProductoViewModelTest {
             val fase = assertIs<Fase.ConProductos>(viewModel.uiState.value.fase)
             assertEquals(5.0, fase.productos.single().precio)
             assertIs<Operacion.Inactiva>(viewModel.uiState.value.operacion)
-            assertTrue(repository.listados > listadosAntes)
+            assertEquals(listadosAntes, repository.listados)
             assertTrue(viewModel.uiState.value.mensajeExito?.contains("actualizado") == true)
         }
     }
@@ -302,6 +319,14 @@ private class FakeProductoRepositoryVacio : BaseFakeProductoRepository() {
     override suspend fun registrar(producto: Producto): Producto = producto
 }
 
+private class FakeProductoRepositoryOffline(producto: Producto) : BaseFakeProductoRepository() {
+    private val productos = MutableStateFlow(listOf(producto))
+    override fun observar() = productos.asStateFlow()
+    override suspend fun sincronizar() { throw ErrorApiException(ErrorApi.SinConexion) }
+    override suspend fun listar(): List<Producto> = error("El listado no debe requerir HTTP")
+    override suspend fun registrar(producto: Producto): Producto = producto
+}
+
 private class FakeProductoRepositoryConProductos(
     private val productos: List<Producto>
 ) : BaseFakeProductoRepository() {
@@ -328,6 +353,8 @@ private class FakeProductoRepositoryRegistroEspia : BaseFakeProductoRepository()
 
 private class FakeProductoRepositoryMutable : BaseFakeProductoRepository() {
     private val productos = mutableListOf<Producto>()
+    private val emisiones = MutableStateFlow<List<Producto>>(emptyList())
+    override fun observar() = emisiones.asStateFlow()
     var listados = 0
     var falloRegistro: Throwable? = null
     var falloObtener: Throwable? = null
@@ -348,12 +375,14 @@ private class FakeProductoRepositoryMutable : BaseFakeProductoRepository() {
         falloRegistro?.let { throw it }
         val creado = producto.copy(id = (productos.maxOfOrNull { it.id } ?: 0L) + 1)
         productos += creado
+        emisiones.value = productos.toList()
         return creado
     }
 
     override suspend fun actualizar(producto: Producto): Producto {
         val indice = productos.indexOfFirst { it.id == producto.id }
         productos[indice] = producto
+        emisiones.value = productos.toList()
         return producto
     }
 
@@ -362,6 +391,7 @@ private class FakeProductoRepositoryMutable : BaseFakeProductoRepository() {
         falloEliminar?.let { throw it }
         val indice = productos.indexOfFirst { it.id == id }
         productos[indice] = productos[indice].copy(activo = false)
+        emisiones.value = productos.toList()
     }
 }
 

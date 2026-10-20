@@ -44,6 +44,11 @@ fun ProductoScreen(viewModel: ProductoViewModel, puedeEditar: Boolean = true) {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text("PharmaMobil")
+        uiState.ultimaSincronizacion?.let { Text("Última sincronización: $it") }
+        uiState.avisoConexion?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        OutlinedButton(onClick = viewModel::cargarProductos, enabled = !uiState.sincronizando) {
+            Text(if (uiState.sincronizando) "Sincronizando..." else "Sincronizar")
+        }
         if (puedeEditar) {
         Text(if (uiState.editandoId == null) "Registro de Producto" else "Editar producto #${uiState.editandoId}")
 
@@ -68,6 +73,7 @@ fun ProductoScreen(viewModel: ProductoViewModel, puedeEditar: Boolean = true) {
 
         Text("Categoría")
         if (uiState.categorias.isEmpty()) {
+            Text("No hay categorías guardadas. Conéctese para descargarlas antes de registrar.")
             OutlinedButton(onClick = viewModel::cargarCategorias) { Text("Cargar categorías") }
         } else {
             Row(

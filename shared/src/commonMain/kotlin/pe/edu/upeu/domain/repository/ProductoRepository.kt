@@ -4,10 +4,12 @@ import pe.edu.upeu.domain.model.Producto
 import pe.edu.upeu.domain.model.Categoria
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 
 interface ProductoRepository {
     /** Los repositorios previos mantienen su contrato durante la transición del ViewModel. */
     fun observar(): Flow<List<Producto>> = flow { emit(listar()) }
+    fun observarUltimaSincronizacion(): Flow<String?> = flowOf(null)
     suspend fun sincronizar() { listar() }
     suspend fun registrar(producto: Producto): Producto
     suspend fun listar(): List<Producto>

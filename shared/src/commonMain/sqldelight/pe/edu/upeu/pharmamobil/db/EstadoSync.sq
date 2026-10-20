@@ -1,0 +1,12 @@
+CREATE TABLE estado_sync (
+    id INTEGER NOT NULL PRIMARY KEY CHECK (id = 1),
+    instante INTEGER NOT NULL
+);
+
+ultimaSincronizacion:
+SELECT strftime('%Y-%m-%d %H:%M', instante, 'unixepoch', 'localtime') AS fechaHora
+FROM estado_sync WHERE id = 1;
+
+registrarSincronizacion:
+INSERT OR REPLACE INTO estado_sync (id, instante)
+VALUES (1, CAST(strftime('%s', 'now') AS INTEGER));
