@@ -1,0 +1,132 @@
+package pe.edu.upeu.data.repository
+
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.sync.Mutex
+import pe.edu.upeu.data.local.ProductoLocal
+import pe.edu.upeu.data.mapper.toDomain
+import pe.edu.upeu.data.mapper.toRequest
+import pe.edu.upeu.data.remote.CategoriaApi
+import pe.edu.upeu.data.remote.ProductoApi
+import pe.edu.upeu.data.remote.dto.PaginaResponseDto
+import pe.edu.upeu.data.remote.dto.ProductoResponseDto
+import pe.edu.upeu.data.remote.ejecutarLlamada
+import pe.edu.upeu.domain.error.ErrorApi
+import pe.edu.upeu.domain.error.ErrorApiException
+import pe.edu.upeu.domain.model.Categoria
+import pe.edu.upeu.domain.model.Producto
+import pe.edu.upeu.domain.repository.ProductoRepository
+
+class ProductoRepositorioOffline(
+    private val local: ProductoLocal,
+    private val remoto: ProductoApi,
+    private val categorias: CategoriaApi
+) : ProductoRepository {
+    private val mutexSincronizacion = Mutex()
+
+    override fun observar(): Flow<List<Producto>> = local.observar()
+
+    /** Compatibilidad con el ViewModel actual hasta que observe el Flow en el paso 5. */
+    override suspend fun listar(): List<Producto> {
+        try {
+            sincronizar()
+        } catch (error: ErrorApiException) {
+            if (error.error != ErrorApi.SinConexion && error.error != ErrorApi.TiempoAgotado &&
+                error.error != ErrorApi.Servidor) throw error
+        }
+        return local.listar()
+    }
+
+    override suspend fun registrar(producto: Producto): Producto {
+        producto.toRequest() // Valida la categoría antes de crear un pendiente imposible de subir.
+        val guardado = local.guardarPendiente(producto)
+        try {
+            sincronizar()
+        } catch (error: ErrorApiException) {
+            if (error.error != ErrorApi.SinConexion) throw error
+        }
+        return guardado
+    }
+
+    override suspend fun sincronizar() {
+        mutexSincronizacion.lock()
+        try {
+            subirPendientes()
+            val productos = descargarCatalogo()
+            local.reemplazarSincronizados(productos)
+        } finally {
+            mutexSincronizacion.unlock()
+        }
+    }
+
+    private suspend fun subirPendientes() {
+        local.pendientes().forEach { pendiente ->
+            val confirmado = ejecutarLlamada { remoto.crear(pendiente.toRequest()).toDomain() }
+                .getOrThrow()
+            local.confirmarPendiente(pendiente.id, confirmado)
+        }
+    }
+
+    private suspend fun descargarCatalogo(): List<Producto> {
+        val primera = ejecutarLlamada { remoto.listar(0, TAMANIO_PAGINA) }.getOrThrow()
+        val totalPaginas = primera.totalPaginas
+        check(totalPaginas in 0..MAX_PAGINAS) { "El catálogo supera el límite seguro de páginas" }
+        check(primera.totalElementos >= 0) { "Total de productos inválido" }
+        val productos = mutableListOf<Producto>()
+
+        fun agregar(pagina: PaginaResponseDto<ProductoResponseDto>, indice: Int) {
+            check(pagina.pagina == indice && pagina.totalPaginas == totalPaginas &&
+                pagina.totalElementos == primera.totalElementos &&
+                pagina.contenido.size <= TAMANIO_PAGINA) {
+                "La paginación cambió durante la sincronización"
+            }
+            productos += pagina.contenido.map { it.toDomain() }
+        }
+
+        agregar(primera, 0)
+        for (indice in 1 until totalPaginas) {
+            agregar(ejecutarLlamada { remoto.listar(indice, TAMANIO_PAGINA) }.getOrThrow(), indice)
+        }
+        check(productos.size.toLong() == primera.totalElementos &&
+            productos.map { it.id }.distinct().size == productos.size) {
+            "El catálogo paginado está incompleto o duplicado"
+        }
+        return productos
+    }
+
+    override suspend fun obtener(id: Long): Producto {
+        if (id < 0) return local.buscar(id)
+            ?: throw ErrorApiException(ErrorApi.NoEncontrado)
+        val producto = ejecutarLlamada { remoto.obtener(id).toDomain() }.getOrThrow()
+        local.guardarSincronizado(producto)
+        return producto
+    }
+
+    override suspend fun actualizar(producto: Producto): Producto {
+        requireIdServidor(producto.id)
+        val actualizado = ejecutarLlamada {
+            remoto.actualizar(producto.id, producto.toRequest()).toDomain()
+        }.getOrThrow()
+        local.guardarSincronizado(actualizado)
+        return actualizado
+    }
+
+    override suspend fun eliminar(id: Long) {
+        requireIdServidor(id)
+        ejecutarLlamada { remoto.eliminar(id) }.getOrThrow()
+        local.marcarInactivo(id)
+    }
+
+    override suspend fun listarCategorias(): List<Categoria> =
+        ejecutarLlamada { categorias.listar().map { it.toDomain() } }.getOrThrow()
+
+    private fun requireIdServidor(id: Long) {
+        if (id <= 0) throw ErrorApiException(
+            ErrorApi.Conflicto("Sincronice el producto pendiente antes de editarlo o darlo de baja")
+        )
+    }
+
+    private companion object {
+        const val TAMANIO_PAGINA = 100
+        const val MAX_PAGINAS = 1_000
+    }
+}

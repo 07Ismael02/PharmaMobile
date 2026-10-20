@@ -21,6 +21,14 @@ class ProductoLocal(base: PharmaDb) {
         .executeAsList()
         .map { it.aDominio() }
 
+    fun listar(): List<Producto> = consultas.listarTodos()
+        .executeAsList()
+        .map { it.aDominio() }
+
+    fun buscar(id: Long): Producto? = consultas.buscarPorId(id)
+        .executeAsOneOrNull()
+        ?.aDominio()
+
     fun guardarPendiente(producto: Producto): Producto = consultas.transactionWithResult {
         val idLocal = consultas.siguienteIdLocal().executeAsOne()
         check(idLocal < 0) { "Se agotaron los identificadores locales negativos" }
@@ -53,6 +61,39 @@ class ProductoLocal(base: PharmaDb) {
                 )
             }
         }
+    }
+
+    fun confirmarPendiente(idLocal: Long, confirmado: Producto) {
+        require(idLocal < 0 && confirmado.id > 0) { "La confirmación debe contener un ID real positivo" }
+        consultas.transaction {
+            check(consultas.buscarPorId(idLocal).executeAsOneOrNull()?.pendiente == 1L) {
+                "El producto local ya no está pendiente"
+            }
+            consultas.borrarPendiente(idLocal)
+            insertarSincronizado(confirmado)
+        }
+    }
+
+    fun guardarSincronizado(producto: Producto) {
+        require(producto.id > 0) { "El producto del servidor debe tener ID positivo" }
+        insertarSincronizado(producto)
+    }
+
+    fun marcarInactivo(id: Long) {
+        require(id > 0) { "La baja requiere un ID del servidor" }
+        consultas.marcarInactivo(id)
+    }
+
+    private fun insertarSincronizado(producto: Producto) {
+        consultas.insertar(
+            id = producto.id,
+            nombre = producto.nombre,
+            precio = producto.precio,
+            stock = producto.stock.toLong(),
+            activo = if (producto.activo) 1L else 0L,
+            categoriaId = producto.categoriaId,
+            pendiente = 0L
+        )
     }
 }
 
