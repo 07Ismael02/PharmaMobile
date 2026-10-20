@@ -91,3 +91,81 @@ PharmaMobil se autentica contra `POST /api/v1/auth/login` de PharmaSoft y guarda
 | `almacen` | ALMACENERO | `CATALOGO_LEER`, `CATALOGO_ESCRIBIR`. |
 
 Las contraseñas de prueba son las publicadas en la Guía Práctica N.° 10 (sección 4.1); son exclusivas del entorno local de laboratorio.
+
+## Persistencia offline-first
+
+PharmaMobil guarda el catálogo en una base SQLite local mediante **SQLDelight 2.1.0** (`app.cash.sqldelight`, base `PharmaDb`, paquete `pe.edu.upeu.pharmamobil.db`). La interfaz siempre lee la base local; la red solo sincroniza.
+
+### Esquema local
+
+| Tabla | Archivo | Contenido |
+| --- | --- | --- |
+| `producto` | `shared/src/commonMain/sqldelight/pe/edu/upeu/pharmamobil/db/Producto.sq` | Productos del servidor y registros locales. Tiene `pendiente` (1 = creado en el dispositivo y aún no confirmado) e `intentoEnvio` (1 = ya se inició un POST). |
+| `categoria` | `Categoria.sq` | Categorías descargadas, para usarlas en el formulario sin red. |
+| `estado_sync` | `EstadoSync.sq` | Fila única con el instante de la última sincronización correcta. |
+
+Migraciones (`.sqm` en el mismo directorio):
+- `1.sqm` crea `categoria`.
+- `2.sqm` crea `estado_sync`.
+- `3.sqm` añade `producto.intentoEnvio` con valor por defecto 1. Así, los pendientes creados antes de esta migración quedan **en revisión** y no se reenvían automáticamente.
+
+### Funcionamiento
+
+- **IDs negativos:** un producto registrado sin confirmación del servidor recibe un ID local negativo (-1, -2, …) con `pendiente=1` e `intentoEnvio=0`. No se puede editar ni dar de baja hasta tener un ID real.
+- **Flow:** `ProductoLocal.observar()` expone la tabla como `Flow<List<Producto>>`. La pantalla de productos se actualiza con cada cambio local y muestra el aviso offline y la fecha de la última sincronización.
+- **Sincronización:** la realiza `ProductoRepositorioOffline.sincronizar()`, serializada con un `Mutex` por ámbito, en tres pasos:
+  1. Sube los pendientes.
+  2. Descarga el catálogo paginado (100 por página, validando páginas y duplicados).
+  3. Reemplaza solo los registros sincronizados (`pendiente=0`), conservando los pendientes locales.
+- **Ámbito por cuenta:** `CoordinadorAmbitoProductos` abre una base distinta por cuenta validada (`pharma-cuenta-<32 hex>.db`, nombre aleatorio vinculado en el almacén seguro). Cada ámbito usa un cliente HTTP con el token fijo de esa sesión. La base histórica `pharma.db` queda en cuarentena y nunca se abre.
+- **JWT:** se reutiliza la autenticación de la Sesión 10. Un 401 de la sesión vigente revoca el ámbito y vuelve al login.
+
+### Protección ante respuestas POST perdidas
+
+Que un GET responda no garantiza que el POST posterior llegue al servidor ni que su respuesta vuelva. Por eso cada producto pasa por estos estados:
+
+| `pendiente` | `intentoEnvio` | Estado | Comportamiento |
+| --- | --- | --- | --- |
+| 1 | 0 | Pendiente sin enviar | Se envía en la siguiente sincronización. |
+| 1 | 1 | Envío incierto: en revisión | **No se reenvía automáticamente** ni se reconcilia por nombre. |
+| 0 | — | Confirmado y reconciliado | Reemplazado por el registro del servidor con ID positivo. |
+
+Reglas:
+1. Antes del lote se hace un GET de solo lectura. Si falla, no se marca nada y el pendiente sigue listo para enviarse.
+2. La marca `intentoEnvio=1` se guarda en SQLite **antes** del POST.
+3. Con una respuesta POST válida, el ID negativo se reemplaza por el ID del servidor (`pendiente=0`).
+4. Si se pierde la respuesta, hay timeout, 409 o 5xx, el producto queda en revisión.
+5. Un 401/403 en el POST (lo rechaza Spring Security antes del controlador, así que no hubo creación) devuelve el pendiente a la cola.
+
+### Compilar y probar
+
+```bash
+./gradlew.bat :androidApp:assembleDebug
+./gradlew.bat :shared:testAndroidHostTest
+```
+
+`testAndroidHostTest` compila y ejecuta en la JVM las pruebas de `shared/src/commonTest` junto con las de `androidHostTest`. Las 8 pruebas comunes de persistencia y sincronización están en `shared/src/commonTest/kotlin/pe/edu/upeu/data/local/PersistenciaSincronizacionCommonTest.kt`. Usan SQLite en memoria (`crearDriverPrueba()`, con versión `actual` para Android-host e iOS) y un servidor simulado `MockEngine`, sin acceder a Oracle. Para ejecutar solo esa clase:
+
+```bash
+./gradlew.bat :shared:testAndroidHostTest --tests "pe.edu.upeu.data.local.PersistenciaSincronizacionCommonTest"
+```
+
+Reporte: `shared/build/reports/tests/testAndroidHostTest/index.html`. En la última ejecución completa, `:shared:testAndroidHostTest` corrió 83 pruebas con 0 fallos.
+
+### Escenarios offline
+
+| # | Escenario | Procedimiento | Resultado esperado | Resultado verificado |
+| --- | --- | --- | --- | --- |
+| 1 | Registro sin conexión | Desactivar la red del emulador y registrar un producto. | Se guarda localmente con ID negativo y `pendiente=1`; aparece en la lista con el aviso offline. | **Verificado manualmente** en el emulador: "S11 SYNC FINAL 20261020" con ID -4 y `pendiente=1`. |
+| 2 | Reconexión y sincronización | Reactivar la red y sincronizar. | El pendiente se sube una sola vez y se reconcilia con un ID positivo y `pendiente=0`. | **Verificado manualmente**: ID 43 con `pendiente=0` en SQLDelight; `GET` en Swagger con HTTP 200. |
+| 3 | Migración 3 sobre una base existente | Abrir la app con una base de cuenta previa a la migración 3. | Se añade `intentoEnvio`; los pendientes previos quedan en revisión sin borrarse. | **Verificado manualmente** en el emulador: -1, -2 y -3 conservados en revisión. Además, prueba automatizada `CategoriaLocalTest`. |
+| 4 | Respuesta POST perdida | El servidor crea el producto pero la respuesta no llega. | El pendiente queda en revisión y no se reenvía en la siguiente sincronización. | **Solo prueba automatizada** con servidor simulado (`respuestaPostPerdidaQuedaEnRevisionSinReenvio`). No ejecutado manualmente. |
+| 5 | Reinicio de la app sin internet | Iniciar sesión, cerrar la app, desactivar la red y reabrirla. | Restaurar la sesión autenticada y mostrar el catálogo local. | **No ejecutado.** La restauración autenticada offline tras reinicio no está implementada. |
+
+Las categorías persistidas en SQLDelight se verificaron manualmente en el emulador.
+
+### Limitaciones
+
+- **Pendientes históricos en revisión:** los productos -1, -2 y -3 quedan en revisión. No hay resolución automática ni una pantalla para resolverlos; tampoco se emparejan por nombre con los IDs 41/42 del servidor.
+- **Restauración autenticada offline:** al reiniciar la app sin internet todavía no se restaura la sesión.
+- **iOS:** no compilado ni probado en esta sesión. `:shared:iosSimulatorArm64Test` requiere macOS. Al compilar el target iOS en Windows se observaron errores en `shared/src/iosMain/kotlin/pe/edu/upeu/data/auth/AlmacenSeguroIos.kt` (llamadas a `conConsulta`, líneas 76, 88 y 99). La versión iOS de `crearDriverPrueba()` no se ha compilado.
