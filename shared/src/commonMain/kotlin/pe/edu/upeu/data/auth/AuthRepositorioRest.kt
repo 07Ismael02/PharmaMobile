@@ -12,6 +12,8 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import kotlinx.io.IOException
 import kotlinx.serialization.Serializable
 import pe.edu.upeu.domain.auth.*
@@ -41,7 +43,8 @@ private data class IdentidadDto(
 class AuthRepositorioRest(
     private val cliente: HttpClient,
     private val almacen: AlmacenSeguro,
-    private val coordinador: CoordinadorSesion
+    private val coordinador: CoordinadorSesion,
+    private val ambitos: CoordinadorAmbitoProductos? = null
 ) : AuthRepository {
     override suspend fun iniciarSesion(credenciales: Credenciales): Sesion = try {
         val dto: LoginRespuestaDto = cliente.post("auth/login") {
@@ -50,7 +53,8 @@ class AuthRepositorioRest(
         require(dto.tipo == "Bearer" && dto.token.isNotBlank())
         almacen.guardarToken(dto.token)
         cliente.authProvider<BearerAuthProvider>()?.clearToken()
-        Sesion(dto.token, dto.username, dto.nombreCompleto, dto.permisos.toSet()).also(coordinador::activa)
+        val sesion = Sesion(dto.token, dto.username, dto.nombreCompleto, dto.permisos.toSet())
+        activarValidada(sesion)
     } catch (cancelacion: CancellationException) {
         throw cancelacion
     } catch (error: ClientRequestException) {
@@ -67,14 +71,18 @@ class AuthRepositorioRest(
         val token = almacen.leerToken() ?: return null
         return try {
             val dto: IdentidadDto = cliente.get("auth/me").body()
-            Sesion(token, dto.username, dto.nombreCompleto, dto.permisos.toSet()).also(coordinador::activa)
+            val sesion = Sesion(token, dto.username, dto.nombreCompleto, dto.permisos.toSet())
+            activarValidada(sesion)
         } catch (cancelacion: CancellationException) {
             throw cancelacion
         } catch (error: ClientRequestException) {
             if (error.response.status == HttpStatusCode.Unauthorized) {
-                almacen.borrarToken()
-                cliente.authProvider<BearerAuthProvider>()?.clearToken()
-                coordinador.expirada()
+                ambitos?.revocarSiToken(token)
+                if (almacen.leerToken() == token) {
+                    almacen.borrarToken()
+                    cliente.authProvider<BearerAuthProvider>()?.clearToken()
+                    coordinador.expirada()
+                }
                 null
             } else if (error.response.status == HttpStatusCode.Forbidden) {
                 throw ErrorSesionException(ErrorSesion.SinPermiso)
@@ -89,8 +97,34 @@ class AuthRepositorioRest(
     }
 
     override suspend fun cerrarSesion() {
+        ambitos?.revocar()
         almacen.borrarToken()
         cliente.authProvider<BearerAuthProvider>()?.clearToken()
         coordinador.sinSesion()
+    }
+
+    private suspend fun activarValidada(sesion: Sesion): Sesion {
+        try {
+            if (ambitos?.activar(sesion) == false) {
+                throw ErrorSesionException(ErrorSesion.CuentaDistinta)
+            }
+        } catch (cancelacion: CancellationException) {
+            withContext(NonCancellable) {
+                ambitos?.revocarSiToken(sesion.token)
+                if (almacen.leerToken() == sesion.token) almacen.borrarToken()
+            }
+            throw cancelacion
+        } catch (error: Exception) {
+            // Un intento de cambio de cuenta fallido no debe dejar visible el ámbito anterior.
+            ambitos?.revocar()
+            if (almacen.leerToken() == sesion.token) {
+                almacen.borrarToken()
+                cliente.authProvider<BearerAuthProvider>()?.clearToken()
+            }
+            coordinador.sinSesion()
+            throw if (error is ErrorSesionException) error
+            else ErrorSesionException(ErrorSesion.AlmacenNoDisponible)
+        }
+        return sesion.also(coordinador::activa)
     }
 }

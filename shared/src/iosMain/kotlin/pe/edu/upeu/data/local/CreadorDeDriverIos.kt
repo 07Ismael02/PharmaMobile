@@ -5,8 +5,8 @@ import app.cash.sqldelight.driver.native.NativeSqliteDriver
 import pe.edu.upeu.pharmamobil.db.PharmaDb
 
 class CreadorDeDriverIos : CreadorDeDriver {
-    override fun crear(): SqlDriver = NativeSqliteDriver(
+    override fun crear(nombreArchivo: String): SqlDriver = NativeSqliteDriver(
         schema = PharmaDb.Schema,
-        name = "pharma.db"
+        name = nombreArchivo.also { require(it.matches(Regex("pharma-cuenta-[0-9a-f]{32}\\.db"))) }
     )
 }

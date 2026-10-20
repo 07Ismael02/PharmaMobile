@@ -33,6 +33,10 @@ class SesionViewModel(
                 } else if (error.tipo == ErrorSesion.SinPermiso) {
                     coordinador.comprobacionPendiente(
                         "El servidor denegó la comprobación de la sesión. Reintente o cierre sesión.")
+                } else if (error.tipo == ErrorSesion.CuentaDistinta) {
+                    coordinador.sinSesion("Esta instalación está vinculada a otra cuenta.")
+                } else if (error.tipo == ErrorSesion.AlmacenNoDisponible) {
+                    coordinador.sinSesion("No se pudo abrir el almacenamiento protegido. Reintente.")
                 } else {
                     coordinador.sinSesion("La sesión ya no es válida. Inicie sesión nuevamente.")
                 }
@@ -56,6 +60,8 @@ class SesionViewModel(
                     ErrorSesion.SinPermiso -> "No tiene permiso para acceder."
                     ErrorSesion.SesionExpirada -> "La sesión expiró."
                     ErrorSesion.SinConexion -> "Sin conexión con el backend. Reintente."
+                    ErrorSesion.CuentaDistinta -> "Esta instalación está vinculada a otra cuenta."
+                    ErrorSesion.AlmacenNoDisponible -> "No se pudo abrir el almacenamiento protegido. Reintente."
                 })
             } finally {
                 _procesando.value = false

@@ -19,7 +19,8 @@ import pe.edu.upeu.domain.repository.ProductoRepository
 class ProductoRepositorioOffline(
     private val local: ProductoLocal,
     private val remoto: ProductoApi,
-    private val categorias: CategoriaApi
+    private val categorias: CategoriaApi,
+    private val comprobarAmbito: () -> Unit = {}
 ) : ProductoRepository {
     private val mutexSincronizacion = Mutex()
 
@@ -37,6 +38,7 @@ class ProductoRepositorioOffline(
     }
 
     override suspend fun registrar(producto: Producto): Producto {
+        comprobarAmbito()
         producto.toRequest() // Valida la categoría antes de crear un pendiente imposible de subir.
         val guardado = local.guardarPendiente(producto)
         try {
@@ -48,10 +50,13 @@ class ProductoRepositorioOffline(
     }
 
     override suspend fun sincronizar() {
+        comprobarAmbito()
         mutexSincronizacion.lock()
         try {
+            comprobarAmbito()
             subirPendientes()
             val productos = descargarCatalogo()
+            comprobarAmbito()
             local.reemplazarSincronizados(productos)
         } finally {
             mutexSincronizacion.unlock()
@@ -60,8 +65,10 @@ class ProductoRepositorioOffline(
 
     private suspend fun subirPendientes() {
         local.pendientes().forEach { pendiente ->
+            comprobarAmbito()
             val confirmado = ejecutarLlamada { remoto.crear(pendiente.toRequest()).toDomain() }
                 .getOrThrow()
+            comprobarAmbito()
             local.confirmarPendiente(pendiente.id, confirmado)
         }
     }
@@ -97,6 +104,7 @@ class ProductoRepositorioOffline(
         if (id < 0) return local.buscar(id)
             ?: throw ErrorApiException(ErrorApi.NoEncontrado)
         val producto = ejecutarLlamada { remoto.obtener(id).toDomain() }.getOrThrow()
+        comprobarAmbito()
         local.guardarSincronizado(producto)
         return producto
     }
@@ -106,6 +114,7 @@ class ProductoRepositorioOffline(
         val actualizado = ejecutarLlamada {
             remoto.actualizar(producto.id, producto.toRequest()).toDomain()
         }.getOrThrow()
+        comprobarAmbito()
         local.guardarSincronizado(actualizado)
         return actualizado
     }
@@ -113,6 +122,7 @@ class ProductoRepositorioOffline(
     override suspend fun eliminar(id: Long) {
         requireIdServidor(id)
         ejecutarLlamada { remoto.eliminar(id) }.getOrThrow()
+        comprobarAmbito()
         local.marcarInactivo(id)
     }
 

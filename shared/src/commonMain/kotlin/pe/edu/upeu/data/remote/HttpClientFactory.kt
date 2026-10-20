@@ -11,6 +11,7 @@ import io.ktor.client.plugins.auth.providers.BearerAuthProvider
 import io.ktor.client.plugins.auth.providers.BearerTokens
 import io.ktor.client.plugins.auth.providers.bearer
 import io.ktor.client.plugins.defaultRequest
+import io.ktor.client.request.header
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
@@ -30,7 +31,10 @@ fun crearHttpClient(
     logger: Logger,
     almacen: AlmacenSeguro? = null,
     coordinador: CoordinadorSesion? = null,
-    esDepuracion: Boolean = false
+    esDepuracion: Boolean = false,
+    tokenFijo: String? = null,
+    al401DeSesion: (() -> Unit)? = null,
+    al401Global: ((String) -> Unit)? = null
 ): HttpClient =
     HttpClient(engine) {
         expectSuccess = true
@@ -45,7 +49,7 @@ fun crearHttpClient(
             level = if (esDepuracion) LogLevel.HEADERS else LogLevel.NONE
             sanitizeHeader { it == HttpHeaders.Authorization }
         }
-        if (almacen != null) {
+        if (almacen != null && tokenFijo == null) {
             install(Auth) {
                 bearer {
                     loadTokens { almacen.leerToken()?.let { BearerTokens(it, "") } }
@@ -58,9 +62,16 @@ fun crearHttpClient(
                 if (fallo is ClientRequestException &&
                     fallo.response.status == HttpStatusCode.Unauthorized &&
                     !request.url.toString().endsWith("/auth/login")) {
-                    almacen?.borrarToken()
-                    fallo.response.call.client.authProvider<BearerAuthProvider>()?.clearToken()
-                    coordinador?.expirada()
+                    if (tokenFijo != null) {
+                        al401DeSesion?.invoke()
+                    } else if (almacen != null &&
+                        request.headers[HttpHeaders.Authorization] == "Bearer ${almacen.leerToken()}") {
+                        val tokenSolicitado = almacen.leerToken() ?: return@handleResponseExceptionWithRequest
+                        almacen.borrarToken()
+                        fallo.response.call.client.authProvider<BearerAuthProvider>()?.clearToken()
+                        coordinador?.expirada()
+                        al401Global?.invoke(tokenSolicitado)
+                    }
                 }
             }
         }
@@ -71,5 +82,7 @@ fun crearHttpClient(
         defaultRequest {
             url(urlBase)
             contentType(ContentType.Application.Json)
+            // El cliente del ámbito no comparte la caché Auth ni reintenta POST al recibir 401.
+            if (tokenFijo != null) header(HttpHeaders.Authorization, "Bearer $tokenFijo")
         }
     }

@@ -86,6 +86,9 @@ kotlin {
             implementation(libs.kotlinx.coroutines.test)
             implementation(libs.ktor.client.mock)
         }
+        getByName("androidHostTest").dependencies {
+            implementation(libs.sqldelight.jvm)
+        }
         getByName("androidDeviceTest").dependencies {
             implementation(libs.androidx.testExt.junit)
             implementation(libs.androidx.test.runner)

@@ -3,5 +3,6 @@ package pe.edu.upeu.data.local
 import app.cash.sqldelight.db.SqlDriver
 
 interface CreadorDeDriver {
-    fun crear(): SqlDriver
+    /** Nunca recibe el nombre de la base histórica en cuarentena. */
+    fun crear(nombreArchivo: String): SqlDriver
 }

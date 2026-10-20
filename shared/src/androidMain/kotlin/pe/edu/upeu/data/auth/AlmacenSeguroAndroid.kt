@@ -5,13 +5,14 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
 import java.security.KeyStore
+import java.security.SecureRandom
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
 /** Solo el texto cifrado queda en preferencias; la clave vive en Android Keystore. */
-class AlmacenSeguroAndroid(contexto: Context) : AlmacenSeguro {
+class AlmacenSeguroAndroid(contexto: Context) : AlmacenSeguro, VinculacionProtegida {
     private val preferencias = contexto.getSharedPreferences("sesion_segura", Context.MODE_PRIVATE)
     private val alias = "pharmamobil.jwt.v1"
 
@@ -29,15 +30,21 @@ class AlmacenSeguroAndroid(contexto: Context) : AlmacenSeguro {
     }
 
     override fun guardarToken(token: String) {
+        guardarCifrado("token", token)
+    }
+
+    private fun guardarCifrado(campo: String, valor: String) {
         val cifrador = Cipher.getInstance("AES/GCM/NoPadding")
         cifrador.init(Cipher.ENCRYPT_MODE, clave())
         val iv = Base64.encodeToString(cifrador.iv, Base64.NO_WRAP)
-        val datos = Base64.encodeToString(cifrador.doFinal(token.toByteArray(Charsets.UTF_8)), Base64.NO_WRAP)
-        check(preferencias.edit().putString("token", "$iv:$datos").commit())
+        val datos = Base64.encodeToString(cifrador.doFinal(valor.toByteArray(Charsets.UTF_8)), Base64.NO_WRAP)
+        check(preferencias.edit().putString(campo, "$iv:$datos").commit())
     }
 
-    override fun leerToken(): String? {
-        val guardado = preferencias.getString("token", null) ?: return null
+    override fun leerToken(): String? = leerCifrado("token")
+
+    private fun leerCifrado(campo: String): String? {
+        val guardado = preferencias.getString(campo, null) ?: return null
         return try {
             val partes = guardado.split(':', limit = 2)
             if (partes.size != 2) return null
@@ -47,12 +54,32 @@ class AlmacenSeguroAndroid(contexto: Context) : AlmacenSeguro {
             cifrador.init(Cipher.DECRYPT_MODE, clave(), GCMParameterSpec(128, iv))
             String(cifrador.doFinal(cifrado), Charsets.UTF_8)
         } catch (_: Exception) {
-            borrarToken()
+            if (campo == "cuenta_vinculada") {
+                error("No se puede leer la vinculación protegida de esta instalación")
+            }
+            preferencias.edit().remove(campo).commit()
             null
         }
     }
 
     override fun borrarToken() {
         preferencias.edit().remove("token").commit()
+    }
+
+    @Synchronized
+    override fun verificarOVincular(claveCuenta: String): String? {
+        require(claveCuenta.isNotBlank())
+        val anterior = leerCifrado("cuenta_vinculada")
+        if (anterior != null) {
+            val partes = anterior.split('\n', limit = 2)
+            check(partes.size == 2 && partes[0].matches(Regex("pharma-cuenta-[0-9a-f]{32}\\.db"))) {
+                "La vinculación protegida no es válida"
+            }
+            return partes[0].takeIf { partes[1] == claveCuenta }
+        }
+        val aleatorio = ByteArray(16).also { SecureRandom().nextBytes(it) }
+        val nombre = "pharma-cuenta-${aleatorio.joinToString("") { "%02x".format(it) }}.db"
+        guardarCifrado("cuenta_vinculada", "$nombre\n$claveCuenta")
+        return nombre
     }
 }

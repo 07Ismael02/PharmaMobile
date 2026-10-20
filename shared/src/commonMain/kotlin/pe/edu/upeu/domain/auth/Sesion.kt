@@ -19,6 +19,8 @@ sealed interface ErrorSesion {
     data object SesionExpirada : ErrorSesion
     data object SinPermiso : ErrorSesion
     data object SinConexion : ErrorSesion
+    data object CuentaDistinta : ErrorSesion
+    data object AlmacenNoDisponible : ErrorSesion
 }
 
 class ErrorSesionException(val tipo: ErrorSesion) : Exception()

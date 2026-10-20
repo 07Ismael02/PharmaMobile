@@ -12,6 +12,11 @@ import pe.edu.upeu.data.remote.CategoriaApi
 import pe.edu.upeu.data.repository.ProductoRepositorioEnMemoria
 import pe.edu.upeu.data.repository.ProductoRepositorioRest
 import pe.edu.upeu.data.repository.ProductoRepositorioNoDisponible
+import pe.edu.upeu.data.auth.CoordinadorAmbitoProductos
+import pe.edu.upeu.data.auth.VinculacionProtegida
+import pe.edu.upeu.data.local.CreadorDeDriver
+import pe.edu.upeu.data.remote.CreadorMotorHttp
+import io.ktor.client.plugins.logging.Logger
 import pe.edu.upeu.domain.presentation.producto.ProductoViewModel
 import pe.edu.upeu.domain.repository.ProductoRepository
 import pe.edu.upeu.domain.usecase.RegistrarProductoUseCase
@@ -31,16 +36,24 @@ import pe.edu.upeu.domain.presentation.auth.SesionViewModel
 
 val dataModule = module {
     single { CoordinadorSesion() }
-    single<HttpClient> {
-        crearHttpClient(get(), get(named("urlBase")), get(), get<AlmacenSeguro>(), get(), get(named("esDepuracion")))
+    single {
+        CoordinadorAmbitoProductos(
+            get<VinculacionProtegida>(), get<CreadorDeDriver>(), get<CreadorMotorHttp>(),
+            get(named("urlBase")), get<Logger>(), get(named("esDepuracion")), get<AlmacenSeguro>(), get()
+        )
     }
-    single<AuthRepository> { AuthRepositorioRest(get(), get(), get()) }
+    single<HttpClient> {
+        val ambitos = get<CoordinadorAmbitoProductos>()
+        crearHttpClient(get(), get(named("urlBase")), get(), get<AlmacenSeguro>(), get(),
+            get(named("esDepuracion")), al401Global = ambitos::programarRevocacionToken)
+    }
+    single<AuthRepository> { AuthRepositorioRest(get(), get(), get(), get()) }
     single { ProductoApi(get()) }
     single { CategoriaApi(get()) }
     single { ProductoRepositorioEnMemoria() }
     single { ProductoRepositorioRest(get(), get()) }
     // Hasta contar con un ámbito de cuenta validada, ningún driver ni repositorio offline se abre.
-    single<ProductoRepository> { ProductoRepositorioNoDisponible() }
+    factory<ProductoRepository> { get<CoordinadorAmbitoProductos>().capturarRepositorio() }
 }
 
 val domainModule = module {
