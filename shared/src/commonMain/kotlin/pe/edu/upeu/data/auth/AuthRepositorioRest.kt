@@ -4,6 +4,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.plugins.HttpRequestTimeoutException
+import io.ktor.client.plugins.ServerResponseException
 import io.ktor.client.plugins.auth.authProvider
 import io.ktor.client.plugins.auth.providers.BearerAuthProvider
 import io.ktor.client.request.get
@@ -75,7 +76,13 @@ class AuthRepositorioRest(
                 cliente.authProvider<BearerAuthProvider>()?.clearToken()
                 coordinador.expirada()
                 null
+            } else if (error.response.status == HttpStatusCode.Forbidden) {
+                throw ErrorSesionException(ErrorSesion.SinPermiso)
             } else throw ErrorSesionException(ErrorSesion.SinConexion)
+        } catch (_: HttpRequestTimeoutException) {
+            throw ErrorSesionException(ErrorSesion.SinConexion)
+        } catch (_: ServerResponseException) {
+            throw ErrorSesionException(ErrorSesion.SinConexion)
         } catch (_: IOException) {
             throw ErrorSesionException(ErrorSesion.SinConexion)
         }

@@ -20,13 +20,22 @@ class SesionViewModel(
     init { restaurar() }
 
     fun restaurar() {
+        coordinador.restaurando()
         viewModelScope.launch {
             try {
                 val sesion = restaurarSesion()
                 if (sesion != null) coordinador.activa(sesion)
                 else if (coordinador.estado.value.cargando) coordinador.sinSesion()
-            } catch (_: ErrorSesionException) {
-                coordinador.sinSesion("No se pudo comprobar la sesión. Verifique la conexión.")
+            } catch (error: ErrorSesionException) {
+                if (error.tipo == ErrorSesion.SinConexion) {
+                    coordinador.comprobacionPendiente(
+                        "Sin conexión. La sesión guardada se conserva; reintente para comprobarla.")
+                } else if (error.tipo == ErrorSesion.SinPermiso) {
+                    coordinador.comprobacionPendiente(
+                        "El servidor denegó la comprobación de la sesión. Reintente o cierre sesión.")
+                } else {
+                    coordinador.sinSesion("La sesión ya no es válida. Inicie sesión nuevamente.")
+                }
             }
         }
     }

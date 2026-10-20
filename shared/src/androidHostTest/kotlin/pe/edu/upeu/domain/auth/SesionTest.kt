@@ -33,6 +33,16 @@ class SesionTest {
     }
 
     @Test
+    fun falloDeRedEnRestauracionNoDeclaraSesionInvalida() {
+        val coordinador = CoordinadorSesion()
+        coordinador.comprobacionPendiente("Sin conexión")
+        assertTrue(coordinador.estado.value.restauracionPendiente)
+        assertFalse(coordinador.estado.value.cargando)
+        coordinador.restaurando()
+        assertTrue(coordinador.estado.value.cargando)
+    }
+
+    @Test
     fun casosDeUsoDeleganYNoDuplicanSolicitudes() = runBlocking {
         val repositorio = RepositorioFalso()
         assertEquals(sesion, IniciarSesionUseCase(repositorio)(Credenciales("almacen", "clave")))

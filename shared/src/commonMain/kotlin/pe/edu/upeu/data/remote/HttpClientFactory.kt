@@ -6,6 +6,8 @@ import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.HttpResponseValidator
 import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.plugins.auth.Auth
+import io.ktor.client.plugins.auth.authProvider
+import io.ktor.client.plugins.auth.providers.BearerAuthProvider
 import io.ktor.client.plugins.auth.providers.BearerTokens
 import io.ktor.client.plugins.auth.providers.bearer
 import io.ktor.client.plugins.defaultRequest
@@ -57,6 +59,7 @@ fun crearHttpClient(
                     fallo.response.status == HttpStatusCode.Unauthorized &&
                     !request.url.toString().endsWith("/auth/login")) {
                     almacen?.borrarToken()
+                    fallo.response.call.client.authProvider<BearerAuthProvider>()?.clearToken()
                     coordinador?.expirada()
                 }
             }
