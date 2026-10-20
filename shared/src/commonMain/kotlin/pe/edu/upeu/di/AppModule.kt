@@ -27,8 +27,15 @@ import pe.edu.upeu.domain.auth.IniciarSesionUseCase
 import pe.edu.upeu.domain.auth.RestaurarSesionUseCase
 import pe.edu.upeu.domain.auth.CerrarSesionUseCase
 import pe.edu.upeu.domain.presentation.auth.SesionViewModel
+import pe.edu.upeu.data.local.CreadorDeDriver
+import pe.edu.upeu.pharmamobil.db.PharmaDb
 
 val dataModule = module {
+    single(createdAtStart = true) {
+        PharmaDb(get<CreadorDeDriver>().crear()).also { base ->
+            base.productoQueries.listarTodos().executeAsList()
+        }
+    }
     single { CoordinadorSesion() }
     single<HttpClient> {
         crearHttpClient(get(), get(named("urlBase")), get(), get<AlmacenSeguro>(), get(), get(named("esDepuracion")))

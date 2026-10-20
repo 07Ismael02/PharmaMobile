@@ -12,8 +12,11 @@ import pe.edu.upeu.pharmamobil.domain.platform.Compartidor
 import pe.edu.upeu.pharmamobil.platform.CompartidorAndroid
 import pe.edu.upeu.data.auth.AlmacenSeguro
 import pe.edu.upeu.data.auth.AlmacenSeguroAndroid
+import pe.edu.upeu.data.local.CreadorDeDriver
+import pe.edu.upeu.data.local.CreadorDeDriverAndroid
 
 actual val platformModule = module {
+    single<CreadorDeDriver> { CreadorDeDriverAndroid(get<Context>()) }
     single<Compartidor> { CompartidorAndroid(get<Context>()) }
     single<AlmacenSeguro> { AlmacenSeguroAndroid(get<Context>()) }
     single<HttpClientEngine> { OkHttp.create() }

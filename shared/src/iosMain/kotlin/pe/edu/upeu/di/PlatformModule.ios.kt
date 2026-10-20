@@ -10,8 +10,11 @@ import pe.edu.upeu.pharmamobil.domain.platform.Compartidor
 import pe.edu.upeu.pharmamobil.platform.CompartidorIos
 import pe.edu.upeu.data.auth.AlmacenSeguro
 import pe.edu.upeu.data.auth.AlmacenSeguroIos
+import pe.edu.upeu.data.local.CreadorDeDriver
+import pe.edu.upeu.data.local.CreadorDeDriverIos
 
 actual val platformModule = module {
+    single<CreadorDeDriver> { CreadorDeDriverIos() }
     single<Compartidor> { CompartidorIos() }
     single<AlmacenSeguro> { AlmacenSeguroIos() }
     single<HttpClientEngine> { Darwin.create() }
