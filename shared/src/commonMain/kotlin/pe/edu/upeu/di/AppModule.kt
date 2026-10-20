@@ -11,8 +11,7 @@ import pe.edu.upeu.data.remote.ProductoApi
 import pe.edu.upeu.data.remote.CategoriaApi
 import pe.edu.upeu.data.repository.ProductoRepositorioEnMemoria
 import pe.edu.upeu.data.repository.ProductoRepositorioRest
-import pe.edu.upeu.data.repository.ProductoRepositorioOffline
-import pe.edu.upeu.data.local.ProductoLocal
+import pe.edu.upeu.data.repository.ProductoRepositorioNoDisponible
 import pe.edu.upeu.domain.presentation.producto.ProductoViewModel
 import pe.edu.upeu.domain.repository.ProductoRepository
 import pe.edu.upeu.domain.usecase.RegistrarProductoUseCase
@@ -29,15 +28,8 @@ import pe.edu.upeu.domain.auth.IniciarSesionUseCase
 import pe.edu.upeu.domain.auth.RestaurarSesionUseCase
 import pe.edu.upeu.domain.auth.CerrarSesionUseCase
 import pe.edu.upeu.domain.presentation.auth.SesionViewModel
-import pe.edu.upeu.data.local.CreadorDeDriver
-import pe.edu.upeu.pharmamobil.db.PharmaDb
 
 val dataModule = module {
-    single(createdAtStart = true) {
-        PharmaDb(get<CreadorDeDriver>().crear()).also { base ->
-            base.productoQueries.listarTodos().executeAsList()
-        }
-    }
     single { CoordinadorSesion() }
     single<HttpClient> {
         crearHttpClient(get(), get(named("urlBase")), get(), get<AlmacenSeguro>(), get(), get(named("esDepuracion")))
@@ -47,8 +39,8 @@ val dataModule = module {
     single { CategoriaApi(get()) }
     single { ProductoRepositorioEnMemoria() }
     single { ProductoRepositorioRest(get(), get()) }
-    single { ProductoLocal(get()) }
-    single<ProductoRepository> { ProductoRepositorioOffline(get(), get(), get()) }
+    // Hasta contar con un ámbito de cuenta validada, ningún driver ni repositorio offline se abre.
+    single<ProductoRepository> { ProductoRepositorioNoDisponible() }
 }
 
 val domainModule = module {
