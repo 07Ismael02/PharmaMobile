@@ -127,6 +127,7 @@ fun App() {
                                 scope.launch { drawerState.open() }
                             },
                             puedeEditar = puedeEditar,
+                            permisos = permisos,
                             sesion = estadoSesion.sesion,
                             accesoOffline = estadoSesion.accesoOffline,
                             generacionSesion = estadoSesion.generacion
@@ -150,6 +151,7 @@ fun App() {
                             onMenuClick = null,
                             modifier = Modifier.weight(1f),
                             puedeEditar = puedeEditar,
+                            permisos = permisos,
                             sesion = estadoSesion.sesion,
                             accesoOffline = estadoSesion.accesoOffline,
                             generacionSesion = estadoSesion.generacion
@@ -177,6 +179,7 @@ fun App() {
                             pantallaActual = pantallaActual,
                             onMenuClick = null,
                             puedeEditar = puedeEditar,
+                            permisos = permisos,
                             sesion = estadoSesion.sesion,
                             accesoOffline = estadoSesion.accesoOffline,
                             generacionSesion = estadoSesion.generacion
@@ -207,7 +210,7 @@ private fun DrawerContent(
         onClick = { onScreenSelected(Screen.Inicio) },
         icon = { Icon(Icons.Default.Home, contentDescription = "Inicio") }
     )
-    DrawerItem(
+    if ("CATALOGO_LEER" in permisos) DrawerItem(
         label = "Productos",
         selected = pantallaActual is Screen.Productos,
         onClick = { onScreenSelected(Screen.Productos) },
@@ -290,7 +293,7 @@ private fun AppNavigationRail(
             icon = { Icon(Icons.Default.Home, contentDescription = "Inicio") },
             label = "Inicio"
         )
-        RailItem(
+        if ("CATALOGO_LEER" in permisos) RailItem(
             selected = pantallaActual is Screen.Productos,
             onClick = { onScreenSelected(Screen.Productos) },
             icon = { Icon(Icons.Default.Medication, contentDescription = "Productos") },
@@ -349,6 +352,7 @@ private fun AppScaffold(
     onMenuClick: (() -> Unit)?,
     modifier: Modifier = Modifier,
     puedeEditar: Boolean,
+    permisos: Set<String>,
     sesion: Sesion?,
     accesoOffline: Boolean,
     generacionSesion: Long
@@ -379,15 +383,16 @@ private fun AppScaffold(
             when (pantallaActual) {
                 Screen.Inicio -> InicioScreen(sesion?.nombreCompleto.orEmpty(),
                     denominacionRol(sesion?.roles.orEmpty()), accesoOffline)
-                Screen.Productos -> ProductoScreen(
+                Screen.Productos -> if ("CATALOGO_LEER" in permisos) ProductoScreen(
                     viewModel = koinViewModel(key = "producto-sesion-$generacionSesion"),
                     puedeEditar = puedeEditar
-                )
-                Screen.Clientes -> if (accesoOffline) Text("Disponible al reconectar.") else ClienteScreen()
-                Screen.Pedidos -> if (accesoOffline) Text("Disponible al reconectar.") else Text(
+                ) else Text("No tiene permiso para consultar productos.")
+                Screen.Clientes -> if ("CLIENTES_LEER" in permisos) ClienteScreen()
+                    else Text("No tiene permiso para consultar clientes.")
+                Screen.Pedidos -> if ("VENTAS_LEER" in permisos) Text(
                     text = "Pantalla de pedidos en construcción",
                     modifier = Modifier.padding(16.dp)
-                )
+                ) else Text("No tiene permiso para consultar pedidos.")
                 Screen.AcercaDe -> AcercaDeScreen()
             }
         }
