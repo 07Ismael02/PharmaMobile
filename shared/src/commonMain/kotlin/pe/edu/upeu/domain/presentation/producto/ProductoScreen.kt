@@ -26,15 +26,26 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import pe.edu.upeu.domain.presentation.components.ValidatedTextField
+import kotlinx.coroutines.delay
+import androidx.compose.runtime.LaunchedEffect
+import kotlin.time.Clock
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductoScreen(viewModel: ProductoViewModel, puedeEditar: Boolean = true) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var ahora by remember { mutableLongStateOf(Clock.System.now().epochSeconds) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(60_000)
+            ahora = Clock.System.now().epochSeconds
+        }
+    }
     var confirmarEliminacion by remember { mutableStateOf<Long?>(null) }
     val formulario = uiState.formulario
     val operando = uiState.operacion is Operacion.EnCurso
@@ -44,7 +55,7 @@ fun ProductoScreen(viewModel: ProductoViewModel, puedeEditar: Boolean = true) {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text("PharmaMobil")
-        uiState.ultimaSincronizacion?.let { Text("Última sincronización: $it") }
+        Text(antiguedadDatos(uiState.ultimaSincronizacion, ahora))
         uiState.avisoConexion?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         OutlinedButton(onClick = viewModel::cargarProductos, enabled = !uiState.sincronizando) {
             Text(if (uiState.sincronizando) "Sincronizando..." else "Sincronizar")

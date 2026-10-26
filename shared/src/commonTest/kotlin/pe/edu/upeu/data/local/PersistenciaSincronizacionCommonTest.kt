@@ -36,6 +36,39 @@ class PersistenciaSincronizacionCommonTest {
     private val logger = object : Logger { override fun log(message: String) = Unit }
     private val pendiente = Producto(0, "Prueba", 4.5, 7, categoriaId = 1)
 
+    @Test
+    fun sincronizacionConRedGuardaRespuestaYLaEmitePorFlow() = conBase { local ->
+        conRepositorio(local, { respond(pagina, headers = cabeceras) }) { repo ->
+            repo.sincronizar()
+            assertEquals(listOf(41L), repo.observar().first().map { it.id })
+        }
+        assertEquals(listOf(41L), local.listar().map { it.id })
+    }
+
+    @Test
+    fun registroSinRedPersistePendienteYLoEmitePorFlow() = conBase { local ->
+        conRepositorio(local, { throw IOException("sin conexión") }) { repo ->
+            val creado = repo.registrar(pendiente)
+            assertTrue(creado.id < 0)
+            assertEquals(listOf(creado.id), local.pendientes().map { it.id })
+            assertEquals(listOf(creado.id), repo.observar().first().map { it.id })
+        }
+    }
+
+    @Test
+    fun descargaRemotaConservaPendienteEnRevision() = conBase { local ->
+        val creado = local.guardarPendiente(pendiente.copy(nombre = "Pendiente local"))
+        local.marcarIntentoEnvio(creado.id)
+        conRepositorio(local, { solicitud ->
+            assertTrue(solicitud.method != HttpMethod.Post)
+            respond(pagina, headers = cabeceras)
+        }) { repo ->
+            repo.sincronizar()
+            assertEquals(setOf(creado.id, 41L), repo.observar().first().map { it.id }.toSet())
+        }
+        assertEquals(listOf(creado.id), local.pendientesEnRevision().map { it.id })
+    }
+
     private fun conBase(prueba: suspend (ProductoLocal) -> Unit) = runTest {
         val driver = crearDriverPrueba()
         try {

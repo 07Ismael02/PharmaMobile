@@ -29,7 +29,7 @@ class ProductoRepositorioOffline(
     private val mutexSincronizacion = Mutex()
 
     override fun observar(): Flow<List<Producto>> = local.observar()
-    override fun observarUltimaSincronizacion(): Flow<String?> =
+    override fun observarUltimaSincronizacion(): Flow<Long?> =
         estadoSync?.observarUltimaSincronizacion() ?: super.observarUltimaSincronizacion()
 
     /** Compatibilidad para consultas puntuales; la interfaz observa el Flow local. */

@@ -43,7 +43,7 @@ data class ProductoUiState(
     val mensajeExito: String? = null,
     val sincronizando: Boolean = false,
     val avisoConexion: String? = null,
-    val ultimaSincronizacion: String? = null,
+    val ultimaSincronizacion: Long? = null,
     val tabSeleccionada: Int = 0
 ) {
     val guardando: Boolean

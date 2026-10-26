@@ -4,7 +4,7 @@ CREATE TABLE estado_sync (
 );
 
 ultimaSincronizacion:
-SELECT strftime('%Y-%m-%d %H:%M', instante, 'unixepoch', 'localtime') AS fechaHora
+SELECT instante
 FROM estado_sync WHERE id = 1;
 
 registrarSincronizacion:

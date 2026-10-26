@@ -10,11 +10,11 @@ import pe.edu.upeu.pharmamobil.db.PharmaDb
 class EstadoSyncLocal(base: PharmaDb) {
     private val consultas = base.estadoSyncQueries
 
-    fun observarUltimaSincronizacion(): Flow<String?> = consultas.ultimaSincronizacion()
+    fun observarUltimaSincronizacion(): Flow<Long?> = consultas.ultimaSincronizacion()
         .asFlow()
         .mapToOneOrNull(Dispatchers.Default)
 
-    fun ultimaSincronizacion(): String? = consultas.ultimaSincronizacion()
+    fun ultimaSincronizacion(): Long? = consultas.ultimaSincronizacion()
         .executeAsOneOrNull()
 
     fun registrarExito() = consultas.registrarSincronizacion()

@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.flowOf
 interface ProductoRepository {
     /** Los repositorios previos mantienen su contrato durante la transición del ViewModel. */
     fun observar(): Flow<List<Producto>> = flow { emit(listar()) }
-    fun observarUltimaSincronizacion(): Flow<String?> = flowOf(null)
+    fun observarUltimaSincronizacion(): Flow<Long?> = flowOf(null)
     suspend fun sincronizar() { listar() }
     suspend fun registrar(producto: Producto): Producto
     suspend fun listar(): List<Producto>
