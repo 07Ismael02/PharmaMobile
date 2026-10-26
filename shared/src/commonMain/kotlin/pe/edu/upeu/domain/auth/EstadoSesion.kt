@@ -8,6 +8,7 @@ data class EstadoSesion(
     val sesion: Sesion? = null,
     val mensaje: String? = null,
     val restauracionPendiente: Boolean = false,
+    val accesoOffline: Boolean = false,
     val generacion: Long = 0
 )
 
@@ -18,6 +19,13 @@ class CoordinadorSesion {
 
     fun activa(sesion: Sesion) {
         _estado.value = EstadoSesion(cargando = false, sesion = sesion, generacion = ++generacion)
+    }
+
+    fun activaOffline(sesion: Sesion) {
+        _estado.value = EstadoSesion(cargando = false, sesion = sesion,
+            accesoOffline = true,
+            mensaje = "Sin conexión. Consulta local en modo de solo lectura.",
+            generacion = ++generacion)
     }
 
     fun sinSesion(mensaje: String? = null) {

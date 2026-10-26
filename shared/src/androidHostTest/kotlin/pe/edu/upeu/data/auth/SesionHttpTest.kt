@@ -22,9 +22,13 @@ import pe.edu.upeu.domain.auth.Sesion
 
 class SesionHttpTest {
     private class AlmacenMemoria(var token: String? = null) : AlmacenSeguro {
+        var identidad: String? = null
         override fun guardarToken(token: String) { this.token = token }
         override fun leerToken(): String? = token
         override fun borrarToken() { token = null }
+        override fun guardarIdentidadValidada(datos: String): Boolean { identidad = datos; return true }
+        override fun leerIdentidadValidada(): String? = identidad
+        override fun borrarIdentidadValidada() { identidad = null }
     }
 
     private val loggerSilencioso = object : Logger { override fun log(message: String) = Unit }
@@ -32,6 +36,7 @@ class SesionHttpTest {
     @Test
     fun respuesta401BorraAlmacenCacheYEstado() = runBlocking {
         val almacen = AlmacenMemoria("token-ficticio")
+        almacen.identidad = "identidad protegida de prueba"
         val coordinador = CoordinadorSesion().apply {
             activa(Sesion("token-ficticio", "almacen", "Prueba", setOf("CATALOGO_LEER")))
         }
@@ -45,6 +50,7 @@ class SesionHttpTest {
         try {
             assertFailsWith<ClientRequestException> { cliente.get("productos") }
             assertNull(almacen.leerToken())
+            assertNull(almacen.identidad)
             assertNull(coordinador.estado.value.sesion)
             cliente.get("productos")
             assertEquals("Bearer token-ficticio", cabeceras.first())
@@ -72,6 +78,7 @@ class SesionHttpTest {
     @Test
     fun logoutBorraCacheAntesDeLaSiguientePeticion() = runBlocking {
         val almacen = AlmacenMemoria("token-ficticio")
+        almacen.identidad = "identidad protegida de prueba"
         val coordinador = CoordinadorSesion().apply {
             activa(Sesion("token-ficticio", "almacen", "Prueba", setOf("CATALOGO_LEER")))
         }
@@ -88,6 +95,7 @@ class SesionHttpTest {
             assertEquals("Bearer token-ficticio", cabeceras.first())
             assertNull(cabeceras.last())
             assertNull(almacen.leerToken())
+            assertNull(almacen.identidad)
             assertNull(coordinador.estado.value.sesion)
         } finally { cliente.close() }
     }
@@ -122,6 +130,21 @@ class SesionHttpTest {
             }
             assertEquals(ErrorSesion.SinConexion, error.tipo)
             assertEquals("token-ficticio", almacen.leerToken())
+        } finally { cliente.close() }
+    }
+
+    @Test
+    fun primeraAperturaSinInternetNoCreaSesion() = runBlocking {
+        val almacen = AlmacenMemoria()
+        val coordinador = CoordinadorSesion()
+        val cliente = crearHttpClient(MockEngine { throw java.io.IOException("sin red") },
+            "https://ejemplo.local/api/v1/", loggerSilencioso, almacen, coordinador)
+        try {
+            val auth = AuthRepositorioRest(cliente, almacen, coordinador)
+            assertNull(auth.sesionGuardada())
+            assertTrue(!auth.backendDisponibleSinSesion())
+            assertNull(auth.sesionOfflineGuardada())
+            assertNull(almacen.leerToken())
         } finally { cliente.close() }
     }
 }

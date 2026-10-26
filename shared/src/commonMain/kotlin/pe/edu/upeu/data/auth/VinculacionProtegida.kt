@@ -6,6 +6,8 @@ import io.ktor.http.Url
 interface VinculacionProtegida {
     /** Solo se llama tras una respuesta autenticada del servidor. Devuelve null para otra cuenta. */
     fun verificarOVincular(claveCuenta: String): String?
+    /** Nunca crea una vinculación durante la restauración sin red. */
+    fun verificarExistente(claveCuenta: String): String? = null
 }
 
 /** El backend impone unicidad de username sin distinguir mayúsculas, no su inmutabilidad. */

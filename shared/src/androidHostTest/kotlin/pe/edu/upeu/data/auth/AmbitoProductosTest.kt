@@ -7,6 +7,7 @@ import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.request.get
+import io.ktor.client.request.post
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
@@ -34,9 +35,13 @@ class AmbitoProductosTest {
     private val logger = object : Logger { override fun log(message: String) = Unit }
 
     private class AlmacenMemoria(var token: String? = null) : AlmacenSeguro {
+        var identidad: String? = null
         override fun guardarToken(token: String) { this.token = token }
         override fun leerToken(): String? = token
         override fun borrarToken() { token = null }
+        override fun guardarIdentidadValidada(datos: String): Boolean { identidad = datos; return true }
+        override fun leerIdentidadValidada(): String? = identidad
+        override fun borrarIdentidadValidada() { identidad = null }
     }
 
     private class VinculacionMemoria : VinculacionProtegida {
@@ -45,6 +50,8 @@ class AmbitoProductosTest {
             if (clave == null) clave = claveCuenta
             return "pharma-cuenta-0123456789abcdef0123456789abcdef.db".takeIf { clave == claveCuenta }
         }
+        override fun verificarExistente(claveCuenta: String): String? =
+            "pharma-cuenta-0123456789abcdef0123456789abcdef.db".takeIf { clave == claveCuenta }
     }
 
     private class DriversMemoria : CreadorDeDriver {
@@ -68,6 +75,41 @@ class AmbitoProductosTest {
     ) = CoordinadorAmbitoProductos(vinculacion, drivers, motor, url, logger, false, almacen, coordinador)
 
     private fun sesion(usuario: String, token: String) = Sesion(token, usuario, "Prueba", setOf("CATALOGO_LEER"))
+
+    @Test
+    fun restauracionOfflineUsaSoloBaseVinculadaYNoConstruyeClienteHttp() = runBlocking {
+        val vinculo = VinculacionMemoria()
+        val drivers = DriversMemoria()
+        val almacen = AlmacenMemoria()
+        val coordinador = CoordinadorSesion()
+        var clientesDeProductos = 0
+        val gestor = gestor(vinculo, drivers, object : CreadorMotorHttp {
+            override fun crear(): HttpClientEngine {
+                clientesDeProductos++
+                return MockEngine { error("No se esperaba HTTP de productos") }
+            }
+        }, almacen, coordinador)
+        val clienteAuth = crearHttpClient(MockEngine {
+            respond("""{"token":"token-A","tipo":"Bearer","expiraEnSegundos":3600,"username":"admin","nombreCompleto":"Admin","roles":["ADMIN"],"permisos":["CATALOGO_LEER"]}""",
+                headers = headersOf(HttpHeaders.ContentType, "application/json"))
+        }, url, logger, almacen, coordinador)
+        try {
+            val auth = AuthRepositorioRest(clienteAuth, almacen, coordinador, gestor)
+            auth.iniciarSesion(pe.edu.upeu.domain.auth.Credenciales("admin", "prueba"))
+            assertEquals(1, clientesDeProductos)
+            gestor.revocar()
+            val offline = auth.sesionOfflineGuardada()
+            assertEquals("admin", offline?.usuario)
+            assertEquals(1, clientesDeProductos)
+            assertTrue(gestor.capturarRepositorio().listar().isEmpty())
+            assertFailsWith<pe.edu.upeu.domain.error.ErrorApiException> {
+                gestor.capturarRepositorio().registrar(Producto(0, "No permitido", 1.0, 1))
+            }
+            assertFalse(gestor.activarOffline(sesion("otra-cuenta", "token-A")))
+            auth.cerrarSesion()
+            assertNull(auth.sesionOfflineGuardada())
+        } finally { clienteAuth.close(); gestor.revocar() }
+    }
 
     @Test
     fun otraCuentaNoAbreBaseNiAccedeAPendientes() = runBlocking {

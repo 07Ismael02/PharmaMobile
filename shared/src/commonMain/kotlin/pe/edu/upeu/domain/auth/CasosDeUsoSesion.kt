@@ -6,6 +6,8 @@ class IniciarSesionUseCase(private val repositorio: AuthRepository) {
 
 class RestaurarSesionUseCase(private val repositorio: AuthRepository) {
     suspend operator fun invoke(): Sesion? = repositorio.sesionGuardada()
+    suspend fun offline(): Sesion? = repositorio.sesionOfflineGuardada()
+    suspend fun backendDisponibleSinSesion(): Boolean = repositorio.backendDisponibleSinSesion()
 }
 
 class CerrarSesionUseCase(private val repositorio: AuthRepository) {

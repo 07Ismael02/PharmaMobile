@@ -26,6 +26,7 @@ import pe.edu.upeu.data.remote.ProductoApi
 import pe.edu.upeu.data.remote.crearHttpClient
 import pe.edu.upeu.data.repository.ProductoRepositorioNoDisponible
 import pe.edu.upeu.data.repository.ProductoRepositorioOffline
+import pe.edu.upeu.data.repository.ProductoRepositorioSoloLectura
 import pe.edu.upeu.domain.auth.CoordinadorSesion
 import pe.edu.upeu.domain.auth.Sesion
 import pe.edu.upeu.domain.model.Categoria
@@ -59,7 +60,7 @@ class CoordinadorAmbitoProductos(
         var anterior: AmbitoProductos? = null
         mutex.withLock {
             val vigente = actual.value
-            if (vigente != null && vigente.token == sesion.token && vigente.usuario == sesion.usuario) return true
+            if (vigente != null && !vigente.soloLectura && vigente.token == sesion.token && vigente.usuario == sesion.usuario) return true
             val generacion = ++proximaGeneracion
             val driver = creadorDriver.crear(archivo)
             val cliente = try {
@@ -76,6 +77,30 @@ class CoordinadorAmbitoProductos(
                 AmbitoProductos(generacion, sesion.usuario, sesion.token, driver, cliente)
             } catch (error: Throwable) {
                 cliente.close()
+                driver.close()
+                throw error
+            }
+            anterior = vigente
+            vigente?.desactivar()
+            actual.value = nuevo
+        }
+        anterior?.cerrarCuandoLibre()
+        return true
+    }
+
+    /** Acceso local: exige una vinculación ya existente y no construye cliente HTTP. */
+    suspend fun activarOffline(sesion: Sesion): Boolean {
+        val archivo = vinculacion.verificarExistente(claveCuentaValidada(urlBase, sesion.usuario))
+            ?: return false
+        var anterior: AmbitoProductos? = null
+        mutex.withLock {
+            val vigente = actual.value
+            if (vigente != null && vigente.soloLectura && vigente.token == sesion.token &&
+                vigente.usuario == sesion.usuario) return true
+            val driver = creadorDriver.crear(archivo)
+            val nuevo = try {
+                AmbitoProductos(++proximaGeneracion, sesion.usuario, sesion.token, driver, null)
+            } catch (error: Throwable) {
                 driver.close()
                 throw error
             }
@@ -118,6 +143,7 @@ class CoordinadorAmbitoProductos(
             vigente.desactivar()
             if (almacen.leerToken() == vigente.token) {
                 almacen.borrarToken()
+                almacen.borrarIdentidadValidada()
                 coordinadorSesion.expirada()
             }
             vigente
@@ -131,22 +157,27 @@ private class AmbitoProductos(
     val usuario: String,
     val token: String,
     private val driver: SqlDriver,
-    private val cliente: HttpClient
+    private val cliente: HttpClient?
 ) {
+    val soloLectura: Boolean get() = cliente == null
     private val vigente = MutableStateFlow(true)
     private val mutex = Mutex()
     private val trabajos = mutableSetOf<Job>()
     private val base = PharmaDb(driver)
-    private val repositorio = ProductoRepositorioOffline(
-        ProductoLocal(base), ProductoApi(cliente), CategoriaApi(cliente), ::comprobarVigencia,
-        CategoriaLocal(base), EstadoSyncLocal(base)
-    )
+    private val repositorio: ProductoRepository = if (cliente == null) {
+        ProductoRepositorioSoloLectura(ProductoLocal(base), CategoriaLocal(base), EstadoSyncLocal(base))
+    } else {
+        ProductoRepositorioOffline(
+            ProductoLocal(base), ProductoApi(cliente), CategoriaApi(cliente), ::comprobarVigencia,
+            CategoriaLocal(base), EstadoSyncLocal(base)
+        )
+    }
 
     fun comprobarVigencia() {
         check(vigente.value) { "El ámbito de productos ya no está vigente" }
     }
 
-    suspend fun <T> ejecutar(bloque: suspend ProductoRepositorioOffline.() -> T): T {
+    suspend fun <T> ejecutar(bloque: suspend ProductoRepository.() -> T): T {
         val trabajo = requireNotNull(currentCoroutineContext()[Job])
         mutex.withLock { comprobarVigencia(); trabajos += trabajo }
         try {
@@ -165,7 +196,7 @@ private class AmbitoProductos(
         val activos = mutex.withLock { trabajos.toList() }
         activos.forEach { it.cancel() }
         activos.joinAll()
-        cliente.close()
+        cliente?.close()
         driver.close()
     }
 }

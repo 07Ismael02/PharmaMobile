@@ -33,6 +33,17 @@ class AlmacenSeguroAndroid(contexto: Context) : AlmacenSeguro, VinculacionProteg
         guardarCifrado("token", token)
     }
 
+    override fun guardarIdentidadValidada(datos: String): Boolean {
+        guardarCifrado("identidad_validada", datos)
+        return true
+    }
+
+    override fun leerIdentidadValidada(): String? = leerCifrado("identidad_validada")
+
+    override fun borrarIdentidadValidada() {
+        preferencias.edit().remove("identidad_validada").commit()
+    }
+
     private fun guardarCifrado(campo: String, valor: String) {
         val cifrador = Cipher.getInstance("AES/GCM/NoPadding")
         cifrador.init(Cipher.ENCRYPT_MODE, clave())
@@ -81,5 +92,15 @@ class AlmacenSeguroAndroid(contexto: Context) : AlmacenSeguro, VinculacionProteg
         val nombre = "pharma-cuenta-${aleatorio.joinToString("") { "%02x".format(it) }}.db"
         guardarCifrado("cuenta_vinculada", "$nombre\n$claveCuenta")
         return nombre
+    }
+
+    @Synchronized
+    override fun verificarExistente(claveCuenta: String): String? {
+        val guardado = leerCifrado("cuenta_vinculada") ?: return null
+        val partes = guardado.split('\n', limit = 2)
+        check(partes.size == 2 && partes[0].matches(Regex("pharma-cuenta-[0-9a-f]{32}\\.db"))) {
+            "La vinculación protegida no es válida"
+        }
+        return partes[0].takeIf { partes[1] == claveCuenta }
     }
 }

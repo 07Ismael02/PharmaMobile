@@ -68,6 +68,7 @@ fun crearHttpClient(
                         request.headers[HttpHeaders.Authorization] == "Bearer ${almacen.leerToken()}") {
                         val tokenSolicitado = almacen.leerToken() ?: return@handleResponseExceptionWithRequest
                         almacen.borrarToken()
+                        almacen.borrarIdentidadValidada()
                         fallo.response.call.client.authProvider<BearerAuthProvider>()?.clearToken()
                         coordinador?.expirada()
                         al401Global?.invoke(tokenSolicitado)

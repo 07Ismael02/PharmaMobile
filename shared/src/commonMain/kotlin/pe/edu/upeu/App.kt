@@ -57,6 +57,7 @@ import pe.edu.upeu.domain.presentation.auth.SesionViewModel
 import pe.edu.upeu.navigation.Screen
 import pe.edu.upeu.domain.presentation.inicio.InicioScreen
 import pe.edu.upeu.theme.PharmaMobilTheme
+import pe.edu.upeu.domain.auth.Sesion
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -65,12 +66,13 @@ fun App() {
     val sesionViewModel: SesionViewModel = koinViewModel()
     val estadoSesion by sesionViewModel.estado.collectAsStateWithLifecycle()
     val procesando by sesionViewModel.procesando.collectAsStateWithLifecycle()
-    val permisos = estadoSesion.sesion?.permisos.orEmpty()
+    val permisos = if (estadoSesion.accesoOffline) setOf("CATALOGO_LEER")
+        else estadoSesion.sesion?.permisos.orEmpty()
     val puedeEditar = "CATALOGO_ESCRIBIR" in permisos
     var pantallaActual by remember {
         mutableStateOf<Screen>(Screen.Inicio)
     }
-    LaunchedEffect(estadoSesion.sesion?.usuario) { pantallaActual = Screen.Inicio }
+    LaunchedEffect(estadoSesion.generacion) { pantallaActual = Screen.Inicio }
 
     var darkTheme by remember {
         mutableStateOf(false)
@@ -113,6 +115,7 @@ fun App() {
                                     darkTheme = darkTheme,
                                     onDarkThemeChange = { darkTheme = it },
                                     permisos = permisos,
+                                    sesion = estadoSesion.sesion,
                                     onCerrarSesion = sesionViewModel::cerrar
                                 )
                             }
@@ -124,6 +127,8 @@ fun App() {
                                 scope.launch { drawerState.open() }
                             },
                             puedeEditar = puedeEditar,
+                            sesion = estadoSesion.sesion,
+                            accesoOffline = estadoSesion.accesoOffline,
                             generacionSesion = estadoSesion.generacion
                         )
                     }
@@ -137,6 +142,7 @@ fun App() {
                             darkTheme = darkTheme,
                             onDarkThemeChange = { darkTheme = it },
                             permisos = permisos,
+                            sesion = estadoSesion.sesion,
                             onCerrarSesion = sesionViewModel::cerrar
                         )
                         AppScaffold(
@@ -144,6 +150,8 @@ fun App() {
                             onMenuClick = null,
                             modifier = Modifier.weight(1f),
                             puedeEditar = puedeEditar,
+                            sesion = estadoSesion.sesion,
+                            accesoOffline = estadoSesion.accesoOffline,
                             generacionSesion = estadoSesion.generacion
                         )
                     }
@@ -159,6 +167,7 @@ fun App() {
                                     darkTheme = darkTheme,
                                     onDarkThemeChange = { darkTheme = it },
                                     permisos = permisos,
+                                    sesion = estadoSesion.sesion,
                                     onCerrarSesion = sesionViewModel::cerrar
                                 )
                             }
@@ -168,6 +177,8 @@ fun App() {
                             pantallaActual = pantallaActual,
                             onMenuClick = null,
                             puedeEditar = puedeEditar,
+                            sesion = estadoSesion.sesion,
+                            accesoOffline = estadoSesion.accesoOffline,
                             generacionSesion = estadoSesion.generacion
                         )
                     }
@@ -185,9 +196,10 @@ private fun DrawerContent(
     darkTheme: Boolean,
     onDarkThemeChange: (Boolean) -> Unit,
     permisos: Set<String>,
+    sesion: Sesion?,
     onCerrarSesion: () -> Unit
 ) {
-    DrawerHeader()
+    DrawerHeader(sesion)
 
     DrawerItem(
         label = "Inicio",
@@ -260,6 +272,7 @@ private fun AppNavigationRail(
     darkTheme: Boolean,
     onDarkThemeChange: (Boolean) -> Unit,
     permisos: Set<String>,
+    sesion: Sesion?,
     onCerrarSesion: () -> Unit
 ) {
     NavigationRail(
@@ -336,6 +349,8 @@ private fun AppScaffold(
     onMenuClick: (() -> Unit)?,
     modifier: Modifier = Modifier,
     puedeEditar: Boolean,
+    sesion: Sesion?,
+    accesoOffline: Boolean,
     generacionSesion: Long
 ) {
     Scaffold(
@@ -362,13 +377,14 @@ private fun AppScaffold(
                 .padding(paddingValues)
         ) {
             when (pantallaActual) {
-                Screen.Inicio -> InicioScreen()
+                Screen.Inicio -> InicioScreen(sesion?.nombreCompleto.orEmpty(),
+                    denominacionRol(sesion?.roles.orEmpty()), accesoOffline)
                 Screen.Productos -> ProductoScreen(
                     viewModel = koinViewModel(key = "producto-sesion-$generacionSesion"),
                     puedeEditar = puedeEditar
                 )
-                Screen.Clientes -> ClienteScreen()
-                Screen.Pedidos -> Text(
+                Screen.Clientes -> if (accesoOffline) Text("Disponible al reconectar.") else ClienteScreen()
+                Screen.Pedidos -> if (accesoOffline) Text("Disponible al reconectar.") else Text(
                     text = "Pantalla de pedidos en construcción",
                     modifier = Modifier.padding(16.dp)
                 )
@@ -379,7 +395,7 @@ private fun AppScaffold(
 }
 
 @Composable
-private fun DrawerHeader() {
+private fun DrawerHeader(sesion: Sesion?) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -390,10 +406,18 @@ private fun DrawerHeader() {
             style = MaterialTheme.typography.headlineSmall
         )
         Text(
-            text = "Gestión farmacéutica",
+            text = denominacionRol(sesion?.roles.orEmpty()) ?: "Gestión farmacéutica",
             style = MaterialTheme.typography.bodyMedium
         )
     }
+}
+
+internal fun denominacionRol(roles: Set<String>): String? = when {
+    "ADMIN" in roles -> "Administrador"
+    "VENDEDOR" in roles -> "Vendedor"
+    "ALMACENERO" in roles -> "Almacenero"
+    else -> roles.sorted().firstOrNull()?.replace('_', ' ')?.lowercase()
+        ?.replaceFirstChar { it.uppercase() }
 }
 
 private fun tituloPantalla(screen: Screen): String {

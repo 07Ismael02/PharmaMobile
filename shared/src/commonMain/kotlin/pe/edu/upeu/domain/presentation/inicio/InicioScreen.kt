@@ -17,7 +17,7 @@ import pharmamobile.shared.generated.resources.Res
 import pharmamobile.shared.generated.resources.pharmamobil_logo
 
 @Composable
-fun InicioScreen() {
+fun InicioScreen(nombre: String = "", rol: String? = null, accesoOffline: Boolean = false) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -41,5 +41,11 @@ fun InicioScreen() {
             style = MaterialTheme.typography.bodyLarge,
             modifier = Modifier.padding(top = 8.dp)
         )
+        if (rol != null) Text("Bienvenido, ${rol.lowercase()}",
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(top = 16.dp))
+        if (nombre.isNotBlank()) Text(nombre)
+        if (accesoOffline) Text("Sin conexión: catálogo local de solo lectura. La sesión se comprobará al reconectar.",
+            modifier = Modifier.padding(top = 16.dp))
     }
 }

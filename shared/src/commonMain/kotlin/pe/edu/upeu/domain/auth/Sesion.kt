@@ -8,7 +8,8 @@ data class Sesion(
     val token: String,
     val usuario: String,
     val nombreCompleto: String,
-    val permisos: Set<String>
+    val permisos: Set<String>,
+    val roles: Set<String> = emptySet()
 ) {
     fun puede(permiso: String): Boolean = permiso in permisos
     override fun toString(): String = "Sesion(usuario=$usuario, token=[REDACTED])"
