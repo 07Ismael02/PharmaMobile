@@ -1,6 +1,7 @@
 package pe.edu.upeu.domain.presentation.producto
 
 import pe.edu.upeu.domain.model.Producto
+import pe.edu.upeu.domain.model.EstadoProductoLocal
 import pe.edu.upeu.pharmamobil.platform.formatearSoles
 
 data class ProductoUi(
@@ -11,7 +12,8 @@ data class ProductoUi(
     val stock: Int,
     val activo: Boolean,
     val categoriaId: Long?,
-    val requiereReposicion: Boolean
+    val requiereReposicion: Boolean,
+    val estadoLocal: EstadoProductoLocal
 )
 
 fun Producto.toUi(): ProductoUi = ProductoUi(
@@ -22,5 +24,6 @@ fun Producto.toUi(): ProductoUi = ProductoUi(
     stock = stock,
     activo = activo,
     categoriaId = categoriaId,
-    requiereReposicion = requiereReposicion
+    requiereReposicion = requiereReposicion,
+    estadoLocal = estadoLocal
 )

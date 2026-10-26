@@ -5,7 +5,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
@@ -34,6 +36,7 @@ import pe.edu.upeu.domain.presentation.components.ValidatedTextField
 import kotlinx.coroutines.delay
 import androidx.compose.runtime.LaunchedEffect
 import kotlin.time.Clock
+import pe.edu.upeu.domain.model.EstadoProductoLocal
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,6 +50,10 @@ fun ProductoScreen(viewModel: ProductoViewModel, puedeEditar: Boolean = true) {
         }
     }
     var confirmarEliminacion by remember { mutableStateOf<Long?>(null) }
+    var formularioVisible by remember { mutableStateOf(false) }
+    LaunchedEffect(uiState.editandoId) {
+        if (uiState.editandoId != null) formularioVisible = true
+    }
     val formulario = uiState.formulario
     val operando = uiState.operacion is Operacion.EnCurso
     val tabs = listOf("Activos", "Inactivos", "Bajo stock")
@@ -60,7 +67,15 @@ fun ProductoScreen(viewModel: ProductoViewModel, puedeEditar: Boolean = true) {
         OutlinedButton(onClick = viewModel::cargarProductos, enabled = !uiState.sincronizando) {
             Text(if (uiState.sincronizando) "Sincronizando..." else "Sincronizar")
         }
-        if (puedeEditar) {
+        if (puedeEditar) OutlinedButton(onClick = {
+            formularioVisible = !formularioVisible
+            if (!formularioVisible && uiState.editandoId != null) viewModel.cancelarEdicion()
+        }) { Text(if (formularioVisible) "Ocultar formulario" else "Nuevo producto") }
+        if (puedeEditar && formularioVisible) Column(
+            modifier = Modifier.fillMaxWidth().heightIn(max = 340.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
         Text(if (uiState.editandoId == null) "Registro de Producto" else "Editar producto #${uiState.editandoId}")
 
         ValidatedTextField(
@@ -160,7 +175,7 @@ fun ProductoScreen(viewModel: ProductoViewModel, puedeEditar: Boolean = true) {
                     ProductoItem(
                         producto = producto,
                         operacion = uiState.operacion,
-                        onEditar = { viewModel.editar(producto.id) },
+                        onEditar = { formularioVisible = true; viewModel.editar(producto.id) },
                         onEliminar = { confirmarEliminacion = producto.id },
                         onCompartir = { viewModel.compartir(producto.id) },
                         puedeEditar = puedeEditar
@@ -210,6 +225,13 @@ private fun ProductoItem(
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(producto.nombre, style = MaterialTheme.typography.titleMedium)
+            when (producto.estadoLocal) {
+                EstadoProductoLocal.PENDIENTE -> Text("Pendiente de sincronización",
+                    color = MaterialTheme.colorScheme.tertiary)
+                EstadoProductoLocal.EN_REVISION -> Text("En revisión — no se reenvía automáticamente",
+                    color = MaterialTheme.colorScheme.error)
+                EstadoProductoLocal.SINCRONIZADO -> Unit
+            }
             Text("Precio: ${producto.precioFormateado}")
             Text("Stock: ${producto.stock}")
             producto.categoriaId?.let { Text("Categoría ID: $it") }

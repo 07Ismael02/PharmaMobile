@@ -6,6 +6,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import pe.edu.upeu.domain.model.Producto
+import pe.edu.upeu.domain.model.EstadoProductoLocal
 import pe.edu.upeu.pharmamobil.db.PharmaDb
 import pe.edu.upeu.pharmamobil.db.Producto as ProductoFila
 
@@ -37,7 +38,7 @@ class ProductoLocal(base: PharmaDb) {
     fun guardarPendiente(producto: Producto): Producto = consultas.transactionWithResult {
         val idLocal = consultas.siguienteIdLocal().executeAsOne()
         check(idLocal < 0) { "Se agotaron los identificadores locales negativos" }
-        val local = producto.copy(id = idLocal)
+        val local = producto.copy(id = idLocal, estadoLocal = EstadoProductoLocal.PENDIENTE)
         consultas.insertar(
             id = local.id,
             nombre = local.nombre,
@@ -131,6 +132,11 @@ private fun ProductoFila.aDominio(): Producto {
         precio = precio,
         stock = stock.toInt(),
         activo = activo == 1L,
-        categoriaId = categoriaId
+        categoriaId = categoriaId,
+        estadoLocal = when {
+            pendiente == 0L -> EstadoProductoLocal.SINCRONIZADO
+            intentoEnvio == 1L -> EstadoProductoLocal.EN_REVISION
+            else -> EstadoProductoLocal.PENDIENTE
+        }
     )
 }

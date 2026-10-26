@@ -1,5 +1,7 @@
 package pe.edu.upeu.domain.model
 
+enum class EstadoProductoLocal { SINCRONIZADO, PENDIENTE, EN_REVISION }
+
 data class Producto(
     val id: Long,
     val nombre: String,
@@ -7,6 +9,7 @@ data class Producto(
     val stock: Int,
     val activo: Boolean = true,
     val categoriaId: Long? = null,
+    val estadoLocal: EstadoProductoLocal = EstadoProductoLocal.SINCRONIZADO,
 ) {
     val requiereReposicion: Boolean
         get() = stock <= STOCK_MINIMO
