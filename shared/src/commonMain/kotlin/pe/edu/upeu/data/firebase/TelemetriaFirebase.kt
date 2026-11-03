@@ -2,6 +2,7 @@ package pe.edu.upeu.data.firebase
 
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.crashlytics.crashlytics
+import dev.gitlive.firebase.analytics.analytics
 import pe.edu.upeu.domain.port.Telemetria
 
 /** Solo se registra en Koin cuando existe configuración Firebase real. */
@@ -17,7 +18,7 @@ class TelemetriaFirebase : Telemetria {
     }
 
     override fun registrarEvento(nombre: String, datos: Map<String, String>) {
-        Firebase.crashlytics.log("evento:$nombre")
+        if (nombre == "s13_acerca_abierta") Firebase.analytics.logEvent(nombre)
     }
 }
 

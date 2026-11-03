@@ -79,8 +79,9 @@ elementos = [
     p("Se instaló el APK S13 sobre una instalación existente en el emulador Android 17, "
       "sin borrar datos. Las imágenes proceden de capturas ADB y se conservan originales. "
       "Los recortes de presentación solo mejoran legibilidad en este documento."),
-    p("El backend no respondió en localhost:8080 durante esta sesión; por ello no se "
-      "presentan login nuevo, sincronización por red ni eventos Firebase como verificados.", "NotaS13"),
+    p("El backend no respondió en localhost:8080 durante la validación funcional anterior; "
+      "no se presentan login nuevo ni sincronización por red como verificados. La prueba "
+      "posterior de Analytics se documenta por separado.", "NotaS13"),
     PageBreak(),
     p("Matriz del recorrido real", "SubS13"),
 ]
@@ -93,7 +94,7 @@ filas = [
     ["Permiso Android", "Denegado, permanente y concedido observados"],
     ["Login y sync online", "No verificados: backend inaccesible"],
     ["Pendiente nuevo / logout", "No ejecutados para conservar la sesión y datos existentes"],
-    ["Firebase", "Sin google-services.json; ningún evento real registrado"],
+    ["Firebase", "Evento registrado y subida HTTP 204; DebugView pendiente"],
 ]
 tabla = Table([[p(c, "NotaS13") for c in fila] for fila in filas], colWidths=[47 * mm, 126 * mm], repeatRows=1)
 tabla.setStyle(TableStyle([
@@ -131,6 +132,11 @@ pagina_evidencia("Permiso: denegado permanentemente", "La segunda denegación pr
 pagina_evidencia("Permiso: concedido", "Se activaron las notificaciones en Ajustes "
                  "y la app mostró Concedido al comprobar nuevamente el estado.",
                  "11-permiso-concedido-real.png", 1100)
+pagina_evidencia("Firebase Analytics: acción real en Android", "Al abrir Acerca de en Pixel_9a "
+                 "se ejecutó Telemetria.registrarEvento con s13_acerca_abierta. Logcat FA-SVC "
+                 "registró el evento y confirmó subida HTTP 204. La recepción visual en "
+                 "Firebase Console DebugView aún no fue observada.",
+                 "12-firebase-acerca-real.png", 1150)
 
 elementos.extend([
     PageBreak(), p("Bitácora y ficha Firebase", "SubS13"),
@@ -139,17 +145,17 @@ elementos.extend([
       "la opción deny_and_dont_ask_again y la app pasó a Denegado permanentemente. "
       "Abrir Ajustes llevó a la ficha de la app; al habilitar notificaciones y comprobar, "
       "la app mostró Concedido."),
-    p("<b>Firebase:</b> contrato Telemetria en dominio y adaptador Crashlytics en datos. "
-      "No existe androidApp/google-services.json. Koin usa la implementación pendiente y "
-      "no se afirma ningún evento enviado. Para activarlo, registrar el paquete com.edu.pe "
-      "en un proyecto Firebase propio y colocar el archivo de configuración en androidApp/. "
-      "El archivo está excluido de Git."),
+    p("<b>Firebase:</b> contrato Telemetria en dominio y adaptador Analytics/Crashlytics en datos. "
+      "El archivo local google-services.json corresponde a com.edu.pe y está excluido de Git. "
+      "Google Services y Crashlytics se aplicaron al APK. El evento s13_acerca_abierta "
+      "se registró en Pixel_9a; el servicio de Google Analytics respondió HTTP 204. "
+      "No se pudo confirmar su presencia visual en DebugView; falta la captura auténtica de consola."),
     p("<b>Pendiente para el cierre funcional:</b> levantar PharmaSoft de forma controlada, "
       "verificar login y datos REST, crear un pendiente nuevo con una sesión online validada, "
       "reconectar, confirmar su ID positivo y registrar capturas. Ejecutar logout solo cuando "
       "se pueda volver a iniciar sesión."),
     p("<b>Integridad de la evidencia:</b> no se simularon imágenes, respuestas del backend, "
-      "estados Firebase ni resultados iOS. Las capturas originales permanecen en docs/s13/evidencias/."),
+      "recepción en DebugView ni resultados iOS. Las capturas originales permanecen en docs/s13/evidencias/."),
 ])
 
 doc = SimpleDocTemplate(str(SALIDA), pagesize=A4, rightMargin=18 * mm,

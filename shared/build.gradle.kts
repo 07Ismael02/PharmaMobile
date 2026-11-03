@@ -82,6 +82,7 @@ kotlin {
             implementation(libs.sqldelight.coroutines)
             implementation(libs.firebase.crashlytics)
             implementation(libs.firebase.messaging)
+            implementation(libs.firebase.analytics)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

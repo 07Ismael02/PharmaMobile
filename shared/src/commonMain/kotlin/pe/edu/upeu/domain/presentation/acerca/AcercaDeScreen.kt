@@ -23,14 +23,17 @@ import pe.edu.upeu.domain.permiso.EstadoPermiso
 import pe.edu.upeu.domain.permiso.GestorPermisos
 import pe.edu.upeu.domain.permiso.Permiso
 import pe.edu.upeu.pharmamobil.platform.InfoDispositivo
+import pe.edu.upeu.domain.port.Telemetria
 
 @Composable
 fun AcercaDeScreen() {
     val dispositivo = remember { InfoDispositivo() }
     val gestor = koinInject<GestorPermisos>()
+    val telemetria = koinInject<Telemetria>()
     val alcance = rememberCoroutineScope()
     var estado by remember { mutableStateOf<EstadoPermiso>(EstadoPermiso.Denegado) }
     LaunchedEffect(Unit) { estado = gestor.estado(Permiso.NOTIFICACIONES) }
+    LaunchedEffect(Unit) { telemetria.registrarEvento("s13_acerca_abierta") }
 
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp),

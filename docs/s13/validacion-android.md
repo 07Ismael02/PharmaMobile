@@ -33,5 +33,6 @@ Autor: Richard Ismael Logacho Rivera. Fecha de ejecución: 3 de noviembre de 202
 ## Pruebas y Firebase
 
 - Resultado anterior de `:shared:testAndroidHostTest`: 81 pruebas, 0 fallos, 0 errores. `:androidApp:assembleDebug`: BUILD SUCCESSFUL. No se repitieron suites en esta validación visual.
-- `androidApp/google-services.json` no existe; Firebase permanece sin configuración externa. No se registró ni afirmó ningún evento real de Firebase.
+- El 3 de noviembre se incorporó `androidApp/google-services.json` (ignorado por Git) para `com.edu.pe`. El APK con Google Services, Crashlytics y Analytics se instaló en Pixel_9a sin borrar datos. Abrir «Acerca de» registró el evento `s13_acerca_abierta`; Logcat FA-SVC mostró `Logging event`, `Gms url request successful` y `Successful upload` con HTTP 204. La captura auténtica de la app es `evidencias/12-firebase-acerca-real.png`. La recepción visual en Firebase Console DebugView continúa sin verificar y no existe captura de esa consola.
+- Con la nueva integración se ejecutaron nuevamente `:shared:testAndroidHostTest` (81 pruebas, 0 fallos, 0 errores) y `:androidApp:assembleDebug` (BUILD SUCCESSFUL). El primer APK cerraba al iniciar por falta del ID de Crashlytics; se agregó el plugin oficial y el APK corregido abrió sin ese fallo.
 - iOS no se compiló ni ejecutó en Windows.

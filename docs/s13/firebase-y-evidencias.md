@@ -4,10 +4,10 @@ Autor: Richard Ismael Logacho Rivera.
 
 ## Firebase
 
-- Contrato: `Telemetria` en dominio; adaptador GitLive Crashlytics en `data/firebase`.
-- El módulo Koin utiliza `TelemetriaPendiente` mientras no exista configuración real. PharmaSoft REST sigue siendo la fuente de productos y autenticación.
-- Para activar Android: crear proyecto Firebase propio, registrar la app **`com.edu.pe`**, descargar `google-services.json` y colocarlo en `androidApp/`. El archivo está excluido de Git. Verificar el recurso generado `google_app_id`, compilar e iniciar en un dispositivo con Google Play Services.
-- No se han configurado credenciales Firebase ni se ha comprobado recepción en consola. La implementación iOS de Firebase y su archivo `GoogleService-Info.plist` quedan pendientes de macOS/Xcode.
+- Contrato: `Telemetria` en dominio; adaptador GitLive Analytics/Crashlytics en `data/firebase`.
+- El proyecto Firebase «PharmaMobile-UPeU Copiar» tiene la app Android **`com.edu.pe`**. `androidApp/google-services.json` existe localmente, coincide con el paquete y está excluido de Git. Google Services generó recursos y el plugin Crashlytics generó el ID de compilación necesario. El módulo Koin activa `TelemetriaFirebase`; PharmaSoft REST sigue siendo la fuente de productos y autenticación.
+- Abrir «Acerca de» registra `s13_acerca_abierta` sin parámetros personales. Se observó en Logcat `Logging event: origin=app,name=s13_acerca_abierta` y subida correcta de Google Analytics HTTP 204. **No se observó todavía en Firebase Console DebugView** ni hay captura de esa pantalla; el estudiante debe abrir Analytics → DebugView y adjuntar su captura auténtica si aparece.
+- La implementación iOS de Firebase y su archivo `GoogleService-Info.plist` quedan pendientes de macOS/Xcode.
 - La telemetría descarta mensajes originales de excepciones y limita el contexto a `pantalla`, `operacion` y `codigo`. Nunca registrar JWT, contraseñas ni datos personales.
 
 ## Evidencias Android observadas
@@ -22,4 +22,4 @@ Se comprobaron denegado, denegado permanentemente y concedido en Pixel 9a/Androi
 3. Verificar login y logout reales cuando el backend esté disponible. No invalidar la sesión previa sin posibilidad de reingreso.
 4. Para filas fallidas, usar pruebas MockEngine y SQLite en memoria. No provocar fallos reales que alteren Oracle.
 
-Las capturas de esta sesión proceden de ADB. Firebase aún requiere configuración externa.
+Las capturas de esta sesión proceden de ADB. La captura Firebase de la app es `evidencias/12-firebase-acerca-real.png`; la de DebugView sigue pendiente.

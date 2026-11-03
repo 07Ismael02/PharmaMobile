@@ -6,7 +6,10 @@ plugins {
 }
 
 // La consola Firebase debe proporcionar androidApp/google-services.json.
-if (file("google-services.json").isFile) apply(plugin = "com.google.gms.google-services")
+if (file("google-services.json").isFile) {
+    apply(plugin = "com.google.gms.google-services")
+    apply(plugin = "com.google.firebase.crashlytics")
+}
 
 kotlin {
     compilerOptions {
