@@ -33,8 +33,15 @@ import pe.edu.upeu.domain.auth.IniciarSesionUseCase
 import pe.edu.upeu.domain.auth.RestaurarSesionUseCase
 import pe.edu.upeu.domain.auth.CerrarSesionUseCase
 import pe.edu.upeu.domain.presentation.auth.SesionViewModel
+import pe.edu.upeu.domain.port.Telemetria
+import pe.edu.upeu.data.firebase.TelemetriaFirebase
+import pe.edu.upeu.data.firebase.TelemetriaPendiente
 
 val dataModule = module {
+    single<Telemetria> {
+        if (get<Boolean>(named("firebaseConfigurado"))) TelemetriaFirebase()
+        else TelemetriaPendiente()
+    }
     single { CoordinadorSesion() }
     single {
         CoordinadorAmbitoProductos(

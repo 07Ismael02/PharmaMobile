@@ -19,6 +19,8 @@ koin = "4.1.1"
 coroutines = "1.9.0"
 ktor = "3.6.0"
 sqldelight = "2.1.0"
+firebaseGitlive = "2.7.0"
+googleServices = "4.5.0"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -57,6 +59,8 @@ sqldelight-coroutines = { module = "app.cash.sqldelight:coroutines-extensions", 
 sqldelight-android = { module = "app.cash.sqldelight:android-driver", version.ref = "sqldelight" }
 sqldelight-native = { module = "app.cash.sqldelight:native-driver", version.ref = "sqldelight" }
 sqldelight-jvm = { module = "app.cash.sqldelight:sqlite-driver", version.ref = "sqldelight" }
+firebase-crashlytics = { module = "dev.gitlive:firebase-crashlytics", version.ref = "firebaseGitlive" }
+firebase-messaging = { module = "dev.gitlive:firebase-messaging", version.ref = "firebaseGitlive" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
@@ -66,3 +70,4 @@ composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "k
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
+googleServices = { id = "com.google.gms.google-services", version.ref = "googleServices" }
