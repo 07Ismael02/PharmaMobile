@@ -76,7 +76,7 @@ class CategoriaLocalTest {
             driver.execute(null, """INSERT INTO producto
                 (id, nombre, precio, stock, activo, categoriaId, pendiente)
                 VALUES (42, 'Confirmado dos', 4.5, 7, 1, 1, 0)""", 0)
-            assertEquals(4L, PharmaDb.Schema.version)
+            assertEquals(5L, PharmaDb.Schema.version)
             PharmaDb.Schema.migrate(driver, 1, PharmaDb.Schema.version)
             val base = PharmaDb(driver)
             assertEquals(setOf(-1L, -2L, -3L),
