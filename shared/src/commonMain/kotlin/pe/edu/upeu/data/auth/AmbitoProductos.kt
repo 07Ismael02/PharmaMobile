@@ -209,6 +209,12 @@ private class RepositorioDeAmbito(private val ambito: AmbitoProductos) : Product
     override fun observarUltimaSincronizacion(): Flow<Long?> = flow {
         ambito.ejecutar { emitAll(observarUltimaSincronizacion()) }
     }
+    override fun observarPendientes(): Flow<Int> = flow {
+        ambito.ejecutar { emitAll(observarPendientes()) }
+    }
+    override fun observarFallidas(): Flow<Int> = flow {
+        ambito.ejecutar { emitAll(observarFallidas()) }
+    }
     override suspend fun sincronizar() = ambito.ejecutar { sincronizar() }
     override suspend fun registrar(producto: Producto) = ambito.ejecutar { registrar(producto) }
     override suspend fun listar() = ambito.ejecutar { listar() }

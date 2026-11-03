@@ -48,6 +48,16 @@ class ProductoViewModel(
                 _uiState.update { it.copy(ultimaSincronizacion = fecha) }
             }
         }
+        viewModelScope.launch {
+            listarProductos.observarPendientes().collect { cantidad ->
+                _uiState.update { it.copy(pendientes = cantidad) }
+            }
+        }
+        viewModelScope.launch {
+            listarProductos.observarFallidas().collect { cantidad ->
+                _uiState.update { it.copy(fallidas = cantidad) }
+            }
+        }
         cargarProductos()
         cargarCategorias()
     }

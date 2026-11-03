@@ -10,6 +10,8 @@ interface ProductoRepository {
     /** Los repositorios previos mantienen su contrato durante la transición del ViewModel. */
     fun observar(): Flow<List<Producto>> = flow { emit(listar()) }
     fun observarUltimaSincronizacion(): Flow<Long?> = flowOf(null)
+    fun observarPendientes(): Flow<Int> = flowOf(0)
+    fun observarFallidas(): Flow<Int> = flowOf(0)
     suspend fun sincronizar() { listar() }
     suspend fun registrar(producto: Producto): Producto
     suspend fun listar(): List<Producto>

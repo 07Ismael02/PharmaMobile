@@ -63,6 +63,11 @@ fun ProductoScreen(viewModel: ProductoViewModel, puedeEditar: Boolean = true) {
     ) {
         Text("PharmaMobil")
         Text(antiguedadDatos(uiState.ultimaSincronizacion, ahora))
+        Text("${uiState.pendientes} cambios por enviar · ${uiState.fallidas} requieren revisión")
+        if (uiState.fallidas > 0) Text(
+            "Revise los productos marcados antes de intentar otro envío; no se reenvían automáticamente.",
+            color = MaterialTheme.colorScheme.error
+        )
         uiState.avisoConexion?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         OutlinedButton(onClick = viewModel::cargarProductos, enabled = !uiState.sincronizando) {
             Text(if (uiState.sincronizando) "Sincronizando..." else "Sincronizar")
@@ -230,6 +235,10 @@ private fun ProductoItem(
                     color = MaterialTheme.colorScheme.tertiary)
                 EstadoProductoLocal.EN_REVISION -> Text("En revisión — no se reenvía automáticamente",
                     color = MaterialTheme.colorScheme.error)
+                EstadoProductoLocal.FALLIDO -> Text(
+                    "Envío fallido: ${producto.ultimoError ?: "Revise el error"}",
+                    color = MaterialTheme.colorScheme.error
+                )
                 EstadoProductoLocal.SINCRONIZADO -> Unit
             }
             Text("Precio: ${producto.precioFormateado}")

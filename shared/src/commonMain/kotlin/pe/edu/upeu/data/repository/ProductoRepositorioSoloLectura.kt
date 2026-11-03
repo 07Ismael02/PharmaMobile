@@ -18,6 +18,8 @@ class ProductoRepositorioSoloLectura(
 ) : ProductoRepository {
     override fun observar(): Flow<List<Producto>> = productos.observar()
     override fun observarUltimaSincronizacion(): Flow<Long?> = estadoSync.observarUltimaSincronizacion()
+    override fun observarPendientes(): Flow<Int> = productos.observarPendientes()
+    override fun observarFallidas(): Flow<Int> = productos.observarFallidas()
     override suspend fun listar(): List<Producto> = productos.listar()
     override suspend fun obtener(id: Long): Producto = productos.buscar(id)
         ?: throw ErrorApiException(ErrorApi.NoEncontrado)

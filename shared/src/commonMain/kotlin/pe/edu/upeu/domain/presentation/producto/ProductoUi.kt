@@ -13,7 +13,8 @@ data class ProductoUi(
     val activo: Boolean,
     val categoriaId: Long?,
     val requiereReposicion: Boolean,
-    val estadoLocal: EstadoProductoLocal
+    val estadoLocal: EstadoProductoLocal,
+    val ultimoError: String? = null
 )
 
 fun Producto.toUi(): ProductoUi = ProductoUi(
@@ -25,5 +26,6 @@ fun Producto.toUi(): ProductoUi = ProductoUi(
     activo = activo,
     categoriaId = categoriaId,
     requiereReposicion = requiereReposicion,
-    estadoLocal = estadoLocal
+    estadoLocal = estadoLocal,
+    ultimoError = ultimoError
 )
