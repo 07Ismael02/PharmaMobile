@@ -10,12 +10,16 @@ Autor: Richard Ismael Logacho Rivera.
 - No se han configurado credenciales Firebase ni se ha comprobado recepción en consola. La implementación iOS de Firebase y su archivo `GoogleService-Info.plist` quedan pendientes de macOS/Xcode.
 - La telemetría descarta mensajes originales de excepciones y limita el contexto a `pantalla`, `operacion` y `codigo`. Nunca registrar JWT, contraseñas ni datos personales.
 
-## Evidencias manuales pendientes
+## Evidencias Android observadas
 
-1. En Pixel 9a, abrir **Acerca de** y capturar el estado inicial del permiso de notificaciones.
-2. Pulsar **Solicitar permiso**; capturar el diálogo Android y el estado concedido o denegado real. Una denegación permanente requiere repetirla según la versión del sistema; si no se reproduce, marcarla pendiente.
-3. Con una cuenta validada y categoría cacheada, activar modo avión, registrar un producto y capturar contador de pendientes y antigüedad de datos.
-4. Recuperar conexión y pulsar **Sincronizar**. Capturar el resultado solo tras verificar el ID real en el backend. No reenviar pendientes «En revisión» sin cotejo manual.
-5. Para filas fallidas, usar pruebas MockEngine y SQLite en memoria. No provocar fallos reales que alteren Oracle.
+La bitácora y las capturas auténticas están en `validacion-android.md` y `evidencias/`.
+Se comprobaron denegado, denegado permanentemente y concedido en Pixel 9a/Android 17.
 
-No se han creado ni modificado capturas. La verificación visual y Firebase requieren intervención del estudiante.
+## Evidencias funcionales aún pendientes
+
+1. Con PharmaSoft disponible y una cuenta validada online, registrar un producto sin red y capturar el nuevo pendiente. La restauración offline actual es de solo lectura.
+2. Recuperar conexión y pulsar **Sincronizar**. Capturar el resultado solo tras verificar el ID real en el backend. No reenviar pendientes «En revisión» sin cotejo manual.
+3. Verificar login y logout reales cuando el backend esté disponible. No invalidar la sesión previa sin posibilidad de reingreso.
+4. Para filas fallidas, usar pruebas MockEngine y SQLite en memoria. No provocar fallos reales que alteren Oracle.
+
+Las capturas de esta sesión proceden de ADB. Firebase aún requiere configuración externa.
