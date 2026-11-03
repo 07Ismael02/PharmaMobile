@@ -14,8 +14,12 @@ import pe.edu.upeu.data.auth.VinculacionProtegida
 import pe.edu.upeu.data.local.CreadorDeDriver
 import pe.edu.upeu.data.local.CreadorDeDriverIos
 import pe.edu.upeu.data.remote.CreadorMotorHttp
+import pe.edu.upeu.data.permiso.GestorPermisosIosNoDisponible
+import pe.edu.upeu.domain.permiso.GestorPermisos
 
 actual val platformModule = module {
+    single(named("firebaseConfigurado")) { false }
+    single<GestorPermisos> { GestorPermisosIosNoDisponible() }
     single<CreadorDeDriver> { CreadorDeDriverIos() }
     single { AlmacenSeguroIos() }
     single<Compartidor> { CompartidorIos() }

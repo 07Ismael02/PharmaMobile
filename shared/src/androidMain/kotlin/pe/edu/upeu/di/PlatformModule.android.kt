@@ -16,8 +16,15 @@ import pe.edu.upeu.data.auth.VinculacionProtegida
 import pe.edu.upeu.data.local.CreadorDeDriver
 import pe.edu.upeu.data.local.CreadorDeDriverAndroid
 import pe.edu.upeu.data.remote.CreadorMotorHttp
+import pe.edu.upeu.data.permiso.GestorPermisosAndroid
+import pe.edu.upeu.domain.permiso.GestorPermisos
 
 actual val platformModule = module {
+    single(named("firebaseConfigurado")) {
+        get<Context>().resources.getIdentifier("google_app_id", "string", get<Context>().packageName) != 0
+    }
+    single { GestorPermisosAndroid(get<Context>()) }
+    single<GestorPermisos> { get<GestorPermisosAndroid>() }
     single<CreadorDeDriver> { CreadorDeDriverAndroid(get<Context>()) }
     single { AlmacenSeguroAndroid(get<Context>()) }
     single<Compartidor> { CompartidorAndroid(get<Context>()) }
