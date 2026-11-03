@@ -148,9 +148,11 @@ private fun ProductoFila.aDominio(): Producto {
         stock = stock.toInt(),
         activo = activo == 1L,
         categoriaId = categoriaId,
+        ultimoError = ultimoError,
         estadoLocal = when {
             pendiente == 0L -> EstadoProductoLocal.SINCRONIZADO
             intentoEnvio == 1L -> EstadoProductoLocal.EN_REVISION
+            intentos >= 5L -> EstadoProductoLocal.FALLIDO
             else -> EstadoProductoLocal.PENDIENTE
         }
     )

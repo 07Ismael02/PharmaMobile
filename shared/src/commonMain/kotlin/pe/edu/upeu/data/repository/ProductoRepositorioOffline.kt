@@ -2,6 +2,7 @@ package pe.edu.upeu.data.repository
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.delay
 import pe.edu.upeu.data.local.ProductoLocal
 import pe.edu.upeu.data.local.CategoriaLocal
 import pe.edu.upeu.data.local.EstadoSyncLocal
@@ -29,6 +30,8 @@ class ProductoRepositorioOffline(
     private val mutexSincronizacion = Mutex()
 
     override fun observar(): Flow<List<Producto>> = local.observar()
+    override fun observarPendientes(): Flow<Int> = local.observarPendientes()
+    override fun observarFallidas(): Flow<Int> = local.observarFallidas()
     override fun observarUltimaSincronizacion(): Flow<Long?> =
         estadoSync?.observarUltimaSincronizacion() ?: super.observarUltimaSincronizacion()
 
@@ -50,7 +53,7 @@ class ProductoRepositorioOffline(
         try {
             sincronizar()
         } catch (error: ErrorApiException) {
-            if (error.error != ErrorApi.SinConexion) throw error
+            if (!error.error.esTransitorio()) throw error
         }
         return guardado
     }
@@ -73,14 +76,20 @@ class ProductoRepositorioOffline(
 
     private suspend fun subirPendientes() {
         val pendientes = local.pendientes()
-        if (pendientes.isNotEmpty()) {
-            // Si el host ya es inaccesible, no marcamos como ambiguo un POST que no se intentó.
-            // Una caída posterior a esta comprobación sigue siendo ambigua y no se reenvía.
-            comprobarAmbito()
-            ejecutarLlamada { remoto.listar(0, 1) }.getOrThrow()
-        }
         pendientes.forEach { pendiente ->
             comprobarAmbito()
+            // GET es seguro para reintentar. El POST nunca se reintenta tras una respuesta perdida.
+            val previos = local.intentos(pendiente.id)
+            if (previos > 0) delay(1_000L shl (previos - 1).coerceAtMost(4))
+            comprobarAmbito()
+            try {
+                ejecutarLlamada { remoto.listar(0, 1) }.getOrThrow()
+            } catch (error: ErrorApiException) {
+                val motivo = error.error.motivoSinDatosSensibles()
+                if (error.error.esTransitorio()) local.sumarIntento(pendiente.id, motivo)
+                else local.marcarFallida(pendiente.id, motivo)
+                throw error
+            }
             local.marcarIntentoEnvio(pendiente.id)
             comprobarAmbito()
             val confirmado = try {
@@ -90,6 +99,8 @@ class ProductoRepositorioOffline(
                 // Cualquier otro fallo (red, timeout, 409, 5xx) queda en revisión sin reenvío.
                 if (error.error == ErrorApi.SesionExpirada || error.error == ErrorApi.SinPermiso) {
                     local.revertirIntentoEnvio(pendiente.id)
+                } else {
+                    local.anotarErrorEnvio(pendiente.id, error.error.motivoSinDatosSensibles())
                 }
                 throw error
             }
@@ -175,4 +186,18 @@ class ProductoRepositorioOffline(
         const val TAMANIO_PAGINA = 100
         const val MAX_PAGINAS = 1_000
     }
+}
+
+private fun ErrorApi.esTransitorio(): Boolean =
+    this == ErrorApi.SinConexion || this == ErrorApi.TiempoAgotado || this == ErrorApi.Servidor
+
+private fun ErrorApi.motivoSinDatosSensibles(): String = when (this) {
+    ErrorApi.SinConexion -> "Sin conexión"
+    ErrorApi.TiempoAgotado -> "Tiempo agotado"
+    ErrorApi.Servidor -> "Servidor no disponible"
+    ErrorApi.SinPermiso -> "Sin privilegio"
+    ErrorApi.SesionExpirada -> "Sesión expirada"
+    ErrorApi.NoEncontrado -> "Recurso no encontrado"
+    is ErrorApi.Conflicto -> "Conflicto; revisar antes de reenviar"
+    is ErrorApi.Validacion -> "Validación rechazada"
 }
