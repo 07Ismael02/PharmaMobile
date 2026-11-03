@@ -5,6 +5,7 @@ import app.cash.sqldelight.coroutines.mapToList
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import app.cash.sqldelight.coroutines.mapToOne
 import pe.edu.upeu.domain.model.Producto
 import pe.edu.upeu.domain.model.EstadoProductoLocal
 import pe.edu.upeu.pharmamobil.db.PharmaDb
@@ -17,6 +18,20 @@ class ProductoLocal(base: PharmaDb) {
         .asFlow()
         .mapToList(Dispatchers.Default)
         .map { filas -> filas.map { it.aDominio() } }
+
+    fun observarPendientes(): Flow<Int> = consultas.contarPendientes().asFlow()
+        .mapToOne(Dispatchers.Default).map { it.toInt() }
+
+    fun observarFallidas(): Flow<Int> = consultas.contarFallidas().asFlow()
+        .mapToOne(Dispatchers.Default).map { it.toInt() }
+
+    fun sumarIntento(id: Long, motivo: String) = consultas.sumarIntento(motivo, id)
+
+    fun marcarFallida(id: Long, motivo: String) = consultas.marcarFallida(motivo, id)
+
+    fun anotarErrorEnvio(id: Long, motivo: String) = consultas.anotarErrorEnvio(motivo, id)
+
+    fun intentos(id: Long): Int = consultas.intentosDe(id).executeAsOne().toInt()
 
     /** Solo los registros nuevos que aún no iniciaron un POST. */
     fun pendientes(): List<Producto> = consultas.listarPendientesPorEnviar()
