@@ -1,0 +1,13 @@
+# Producto D - Ficha de integración
+
+| ID | Componente | Problema observado | Evidencia | Severidad | Decisión | Cierre | Justificación |
+|---|---|---|---|---|---|---|---|
+|I01|Backend/JWT|main carecía de autenticación requerida.|docs/s13-integracion.md (backend)|Alta|Cerrado hoy|06/11/2026|Rama JWT aislada, login/me/403/401 reales; main intacto.|
+|I02|Oracle Lite|USERS no existe en la imagen Lite.|crear-esquema.ps1 y registro M4|Alta|Cerrado hoy|06/11/2026|Tablespace PHARMAS13, cuota limitada y esquema vacío; V1–V3 exitosas.|
+|I03|Windows/JDK|Tomcat/Gradle fallaban al conectar sockets Unix bajo MSIX.|iniciar-backend.ps1 y arranque real|Alta|Cerrado hoy|06/11/2026|Fallback TCP limitado al proceso; ningún cambio global ni funcional.|
+|I04|Operación backend|Script de parada no reconocía classpath @argfile.|detener-backend.ps1 y reinicios del ensayo|Media|Cerrado hoy|06/11/2026|Lee argfile y verifica pertenencia antes de detener Java. Dos paradas verificadas.|
+|I05|Android/UX|Mensaje de alta online dice que se sincronizará aunque ya hay ID definitivo.|04-online-sqlite.json + captura 04|Baja|Sesión 14|—|No afecta conciliación: ID 41 confirmado. Mejorar precisión del mensaje sin ocultar el resultado.|
+|I06|Android/seguridad|Otra cuenta no puede usar una instalación vinculada.|Perfiles 10/11 y snapshots logout|Baja|Descartado|—|Es protección de aislamiento, no defecto que deba eliminarse; usar perfiles separados conserva datos.|
+|I07|iOS|No hay compilación/ejecución; permisos nativos no implementados.|plataformas.md y iosMain|Alta|Sesión 14|—|Requiere macOS/Xcode y evaluación real; no se presenta como cerrado.|
+|I08|Firebase|JSON auténtico ausente y bitácora histórica contradice PNG DebugView.|PNG histórico + git e5b0b2c|Media|Sesión 14|—|Se aclara recepción del 03/11; integración actual depende del archivo del propietario.|
+|I09|Offline/UX|Tras reinicio offline, acceso es solo lectura; formulario no garantizado al expirar.|AuthRepositorioRest/SesionViewModel|Media|Sesión 14|—|El alta offline demostrada parte de sesión validada y app abierta; ampliar alcance requiere diseño posterior.|

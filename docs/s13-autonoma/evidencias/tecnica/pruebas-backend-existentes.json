@@ -1,0 +1,79 @@
+[
+  {
+    "suite": "pe.edu.upeu.PharmaBackend.PharmaBackendApplicationTests",
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "suite": "pe.edu.upeu.PharmaBackend.security.AuthServiceTest",
+    "tests": 3,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "suite": "pe.edu.upeu.PharmaBackend.security.DtoSeguridadTest",
+    "tests": 2,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "suite": "pe.edu.upeu.PharmaBackend.security.JwtExpiradoWebTest",
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "suite": "pe.edu.upeu.PharmaBackend.security.JwtServiceTest",
+    "tests": 3,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "suite": "pe.edu.upeu.PharmaBackend.security.MensajeAutenticacionTest",
+    "tests": 2,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "suite": "pe.edu.upeu.PharmaBackend.security.PermisosPorRolTest",
+    "tests": 4,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "suite": "pe.edu.upeu.PharmaBackend.security.UsuarioDeshabilitadoWebTest",
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "suite": "pe.edu.upeu.PharmaBackend.security.UsuarioVigenteFilterTest",
+    "tests": 2,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "suite": "pe.edu.upeu.PharmaBackend.service.impl.ProductoServiceImplTest",
+    "tests": 3,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "suite": "pe.edu.upeu.PharmaBackend.service.impl.VentaServiceImplTest",
+    "tests": 17,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  }
+]

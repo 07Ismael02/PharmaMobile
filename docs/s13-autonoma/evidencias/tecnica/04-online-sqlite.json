@@ -1,0 +1,61 @@
+{
+  "fecha_host_utc": "2026-11-06T20:01:17.888896+00:00",
+  "android_user": 10,
+  "almacen": {
+    "cuenta_vinculada": {
+      "presente": true,
+      "longitud_cifrado": 157,
+      "formato_iv_cifrado": true
+    },
+    "token": {
+      "presente": true,
+      "longitud_cifrado": 485,
+      "formato_iv_cifrado": true
+    },
+    "identidad_validada": {
+      "presente": true,
+      "longitud_cifrado": 685,
+      "formato_iv_cifrado": true
+    }
+  },
+  "bases": 1,
+  "productos": [
+    {
+      "id": 1,
+      "nombre": "S13 Producto Base",
+      "pendiente": 0,
+      "intentoEnvio": 1,
+      "intentos": 0,
+      "ultimoError": null
+    },
+    {
+      "id": 21,
+      "nombre": "S13 HTTP 5235bda967b34897adfce9ebf5240ea6",
+      "pendiente": 0,
+      "intentoEnvio": 1,
+      "intentos": 0,
+      "ultimoError": null
+    },
+    {
+      "id": 41,
+      "nombre": "S13_Android_Online_20261106",
+      "pendiente": 0,
+      "intentoEnvio": 1,
+      "intentos": 0,
+      "ultimoError": null
+    }
+  ],
+  "estado_sync": [
+    {
+      "id": 1,
+      "instante": 1793995275
+    }
+  ],
+  "categorias": [
+    {
+      "id": 1,
+      "nombre": "S13 Sintetica",
+      "activa": 1
+    }
+  ]
+}

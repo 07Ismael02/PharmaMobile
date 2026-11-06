@@ -1,0 +1,3 @@
+41|S13_Android_Online_20261106|6.75|12
+42|S13_Android_Offline_20261106|8.5|9
+61|S13_Android_Online_Trazable|7.25|6

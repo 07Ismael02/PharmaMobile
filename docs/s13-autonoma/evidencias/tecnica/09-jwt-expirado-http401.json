@@ -1,0 +1,14 @@
+{
+  "fecha_utc": "2026-11-06T20:14:40.8001974Z",
+  "status": 401,
+  "exp": 1793996015,
+  "ahora": 1793996080,
+  "respuesta": {
+    "timestamp": "2026-11-06T15:14:40.7433885",
+    "status": 401,
+    "error": "Unauthorized",
+    "message": "El token ha expirado. Inicie sesión nuevamente",
+    "path": "/api/v1/auth/me",
+    "validationErrors": null
+  }
+}

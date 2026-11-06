@@ -1,0 +1,182 @@
+[
+  {
+    "paso": 1,
+    "titulo": "Primera apertura sin sesión",
+    "original": "evidencias/flujo/01b-perfil-aislado-sin-sesion.png",
+    "recorte": "evidencias/recortes/paso-01.png",
+    "limites": [
+      0,
+      750,
+      1080,
+      1750
+    ],
+    "sha256_original": "fe47f4eb0bc6dddd45da07f08a4787f363cd85baad9dcac5fd748f63c7706f29",
+    "fecha_captura_host_utc": "2026-11-06T20:09:34.896971+00:00",
+    "accion": "Abrir el APK en el perfil nuevo 11, antes de autenticar.",
+    "estado": "Login visible, sin identidad activa.",
+    "resultado": "Almacén sin token y cero bases locales en la instalación reader. Perfil 10 también se creó nuevo para writer.",
+    "tecnica": "evidencias/tecnica/01-instalacion-reader-vacia.json"
+  },
+  {
+    "paso": 2,
+    "titulo": "Login y almacenamiento seguro",
+    "original": "evidencias/flujo/02-login-writer.png",
+    "recorte": "evidencias/recortes/paso-02.png",
+    "limites": [
+      0,
+      900,
+      1080,
+      1780
+    ],
+    "sha256_original": "55b4f39772b85c6e1ebc1e26753d3c6187f65e3043ff2aef2daecd793216d2f9",
+    "fecha_captura_host_utc": "2026-11-06T19:59:16.219959+00:00",
+    "accion": "Autenticar s13_writer en el perfil 10.",
+    "estado": "Sesión online ALMACENERO.",
+    "resultado": "Login HTTP 200; identidad S13 Escritura Sintetica. Token e identidad cifrados con IV; clave gestionada por Android Keystore según implementación. No se extrae ni muestra el JWT.",
+    "tecnica": "evidencias/tecnica/03-almacen-catalogo.json"
+  },
+  {
+    "paso": 3,
+    "titulo": "Catálogo tras primera sincronización",
+    "original": "evidencias/flujo/03-catalogo-sincronizado.png",
+    "recorte": "evidencias/recortes/paso-03.png",
+    "limites": [
+      0,
+      300,
+      1080,
+      2320
+    ],
+    "sha256_original": "bdd962a1d5890170cce8e7b99540b10af689a104e7af41617c98948ed6bfb3cf",
+    "fecha_captura_host_utc": "2026-11-06T19:59:59.863172+00:00",
+    "accion": "Abrir Productos con red y categorías descargadas.",
+    "estado": "Dos productos sincronizados; cero pendientes.",
+    "resultado": "SQLite contiene IDs 1 y 21; estado_sync=1793995198. GET real 200 en Logcat. Hora de sincronización 06/11/2026 14:59:58 Lima.",
+    "tecnica": "evidencias/tecnica/03-almacen-catalogo.json"
+  },
+  {
+    "paso": 4,
+    "titulo": "Registro online confirmado",
+    "original": "evidencias/flujo/04c-alta-online-http201.png",
+    "recorte": "evidencias/recortes/paso-04.png",
+    "limites": [
+      0,
+      300,
+      1080,
+      2320
+    ],
+    "sha256_original": "f516c046bc5696133b5697204b8794f69e02fa74c7f5059f82b7fdf96a41d81d",
+    "fecha_captura_host_utc": "2026-11-06T20:24:25.295179+00:00",
+    "accion": "Registrar desde Android; repetir el alta con nombre Trazable para conservar el 201 antes de rotar Logcat.",
+    "estado": "POST 201 observado; IDs definitivos 41 y 61.",
+    "resultado": "Primera alta: ID 41 (precio 6.75, stock 12). Repetición de trazabilidad: S13_Android_Online_Trazable, ID 61 (precio 7.25, stock 6). La captura corresponde a la repetición; 04-http201-android-repeticion.txt conserva el 201 real.",
+    "tecnica": "evidencias/tecnica/04c-online-trazable.json"
+  },
+  {
+    "paso": 5,
+    "titulo": "Registro sin conexión",
+    "original": "evidencias/flujo/05b-fila-pendiente.png",
+    "recorte": "evidencias/recortes/paso-05.png",
+    "limites": [
+      0,
+      300,
+      1080,
+      2320
+    ],
+    "sha256_original": "14724f68bf0ecb375116fbac604bcc2107e731f87583babd6e89d4051b1f780c",
+    "fecha_captura_host_utc": "2026-11-06T20:02:55.386940+00:00",
+    "accion": "Activar modo avión y deshabilitar Wi-Fi/datos; registrar con sesión ya validada.",
+    "estado": "Un cambio pendiente, sin respuesta HTTP.",
+    "resultado": "S13_Android_Offline_20261106 queda con ID -1, pendiente=1, intentoEnvio=0, intentos=1. Categoría previamente descargada. Ningún pendiente histórico se reenvía.",
+    "tecnica": "evidencias/tecnica/05-pendiente-confirmado.json"
+  },
+  {
+    "paso": 6,
+    "titulo": "Reconexión y conciliación",
+    "original": "evidencias/flujo/06-sincronizacion-recuperada.png",
+    "recorte": "evidencias/recortes/paso-06.png",
+    "limites": [
+      0,
+      300,
+      1080,
+      2320
+    ],
+    "sha256_original": "657e0c57d37f740e474d192d66cc9c2b3d3f1a1093c72556bef293f9d30d598c",
+    "fecha_captura_host_utc": "2026-11-06T20:03:19.874738+00:00",
+    "accion": "Desactivar modo avión, habilitar red y pulsar Sincronizar.",
+    "estado": "Pendientes: 1 → 0; POST 201.",
+    "resultado": "El ID -1 se sustituye por 42 y pendiente=0; catálogo de cuatro elementos. Oracle confirma IDs 41/42 y stocks 12/9. estado_sync=1793995397.",
+    "tecnica": "evidencias/tecnica/06-conciliacion-sqlite.json"
+  },
+  {
+    "paso": 7,
+    "titulo": "Validación local y remota",
+    "original": "evidencias/flujo/07-error-validacion-local.png",
+    "recorte": "evidencias/recortes/paso-07.png",
+    "limites": [
+      0,
+      1230,
+      1080,
+      1820
+    ],
+    "sha256_original": "3abd7c1e6d67acea1c2d32036c1a6a29defed1f6010261f5b046a867be20d486",
+    "fecha_captura_host_utc": "2026-11-06T20:05:51.683593+00:00",
+    "accion": "Pulsar Registrar sin seleccionar categoría; realizar aparte una petición HTTP controlada con precio cero.",
+    "estado": "Campo Categoría requerido; petición externa HTTP 400.",
+    "resultado": "Android muestra «Seleccione una categoría.» sin crear fila. El 400 remoto devuelve validationErrors.precio. Son dos recorridos distintos: no se atribuye el HTTP 400 al formulario local.",
+    "tecnica": "evidencias/tecnica/07-http400-real.json"
+  },
+  {
+    "paso": 8,
+    "titulo": "Operación sin privilegios",
+    "original": "evidencias/flujo/08-reader-estado-actual.png",
+    "recorte": "evidencias/recortes/paso-08.png",
+    "limites": [
+      0,
+      300,
+      1080,
+      2320
+    ],
+    "sha256_original": "f0cba2130318996837bd34aa59cf14daf21d7ccfc80f9af1341c4fb835847f3d",
+    "fecha_captura_host_utc": "2026-11-06T20:10:22.491024+00:00",
+    "accion": "Autenticar s13_reader en perfil 11 y consultar Productos; intentar POST controlado con su JWT.",
+    "estado": "Lectura permitida; escritura HTTP 403.",
+    "resultado": "VENDEDOR tiene CATALOGO_LEER y no CATALOGO_ESCRIBIR. Android no muestra Nuevo/Editar/Baja. El rechazo 403 se obtiene realmente por HTTP externo; ocultar botones no se presenta como respuesta de red.",
+    "tecnica": "evidencias/tecnica/08-http403-real.json"
+  },
+  {
+    "paso": 9,
+    "titulo": "Vencimiento auténtico de JWT",
+    "original": "evidencias/flujo/09-jwt-vencido-revocado.png",
+    "recorte": "evidencias/recortes/paso-09.png",
+    "limites": [
+      0,
+      700,
+      1080,
+      1770
+    ],
+    "sha256_original": "348afa0c26a07229e7f0a3cfbe1364d978c7835434fcef0f90e591282f69c663",
+    "fecha_captura_host_utc": "2026-11-06T20:14:45.714815+00:00",
+    "accion": "Emitir JWT con JWT_EXPIRACION_MINUTOS=1; esperar expiración más tolerancia y sincronizar.",
+    "estado": "HTTP 401 por token expirado; Android vuelve al login.",
+    "resultado": "Control: expiraEnSegundos=60; /auth/me devuelve «El token ha expirado». Android recibe 401, elimina token/identidad y revoca ámbito. Base y vinculación permanecen. Se restauró emisión normal a 3600 s.",
+    "tecnica": "evidencias/tecnica/09-jwt-expirado-http401.json"
+  },
+  {
+    "paso": 10,
+    "titulo": "Logout y estado local",
+    "original": "evidencias/flujo/10c-logout-final.png",
+    "recorte": "evidencias/recortes/paso-10.png",
+    "limites": [
+      0,
+      750,
+      1080,
+      1750
+    ],
+    "sha256_original": "58bae2c78883d257a2b07b76113eb9a7440dc4c3258608d391240ecd59920d0c",
+    "fecha_captura_host_utc": "2026-11-06T20:24:33.032629+00:00",
+    "accion": "Con duración normal, iniciar sesión y pulsar Cerrar sesión desde el menú.",
+    "estado": "Login visible; token e identidad ausentes.",
+    "resultado": "Antes: token/identidad presentes. Después: solo cuenta_vinculada; una base y cinco productos conservados. Logout no borra datos ni habilita otra cuenta en esa instalación.",
+    "tecnica": "evidencias/tecnica/10d-logout-final.json"
+  }
+]

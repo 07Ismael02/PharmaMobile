@@ -1,0 +1,17 @@
+{
+  "fecha_utc": "2026-11-06T20:06:05.5984150Z",
+  "origen": "Peticion HTTP controlada externa, no formulario Android",
+  "metodo": "POST",
+  "ruta": "/api/v1/productos",
+  "status": 400,
+  "respuesta": {
+    "timestamp": "2026-11-06T15:06:05.5619382",
+    "status": 400,
+    "error": "Bad Request",
+    "message": "Existen errores de validación",
+    "path": "/api/v1/productos",
+    "validationErrors": {
+      "precio": "El precio debe ser mayor que cero"
+    }
+  }
+}

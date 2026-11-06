@@ -1,0 +1,23 @@
+{
+  "fecha_utc": "2026-11-06T20:10:41.1448336Z",
+  "origen": "Peticion controlada externa con s13_reader",
+  "roles": [
+    "VENDEDOR"
+  ],
+  "permisos": [
+    "CATALOGO_LEER",
+    "CLIENTES_ESCRIBIR",
+    "CLIENTES_LEER",
+    "VENTAS_LEER",
+    "VENTAS_REGISTRAR"
+  ],
+  "status": 403,
+  "respuesta": {
+    "timestamp": "2026-11-06T15:10:41.1321066",
+    "status": 403,
+    "error": "Forbidden",
+    "message": "No tiene permiso para esta operación",
+    "path": "/api/v1/productos",
+    "validationErrors": null
+  }
+}

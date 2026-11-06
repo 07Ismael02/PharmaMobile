@@ -1,0 +1,17 @@
+{
+  "fecha_utc": "2026-11-06T20:12:35.1315334Z",
+  "status": 200,
+  "expiraEnSegundos": 60,
+  "issuer": "PharmaSoft",
+  "subject": "s13_writer",
+  "iat": 1793995955,
+  "exp": 1793996015,
+  "roles": [
+    "ALMACENERO"
+  ],
+  "permisos": [
+    "CATALOGO_ESCRIBIR",
+    "CATALOGO_LEER"
+  ],
+  "token": "NO PUBLICADO"
+}
