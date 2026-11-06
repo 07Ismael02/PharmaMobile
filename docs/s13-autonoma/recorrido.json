@@ -103,7 +103,7 @@
     "sha256_original": "657e0c57d37f740e474d192d66cc9c2b3d3f1a1093c72556bef293f9d30d598c",
     "fecha_captura_host_utc": "2026-11-06T20:03:19.874738+00:00",
     "accion": "Desactivar modo avión, habilitar red y pulsar Sincronizar.",
-    "estado": "Pendientes: 1 → 0; POST 201.",
+    "estado": "Pendientes: 1 → 0; ID 42 confirmado.",
     "resultado": "El ID -1 se sustituye por 42 y pendiente=0; catálogo de cuatro elementos. Oracle confirma IDs 41/42 y stocks 12/9. estado_sync=1793995397.",
     "tecnica": "evidencias/tecnica/06-conciliacion-sqlite.json"
   },

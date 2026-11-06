@@ -47,7 +47,7 @@ Los originales PNG proceden de adb screencap; los recortes solo eliminan márgen
 ## 6. Reconexión y conciliación
 
 - Acción: Desactivar modo avión, habilitar red y pulsar Sincronizar.
-- Estado: Pendientes: 1 → 0; POST 201.
+- Estado: Pendientes: 1 → 0; ID 42 confirmado.
 - Observación: El ID -1 se sustituye por 42 y pendiente=0; catálogo de cuatro elementos. Oracle confirma IDs 41/42 y stocks 12/9. estado_sync=1793995397.
 - Captura: [evidencias/flujo/06-sincronizacion-recuperada.png](evidencias/flujo/06-sincronizacion-recuperada.png)
 - Complemento: [evidencias/tecnica/06-conciliacion-sqlite.json](evidencias/tecnica/06-conciliacion-sqlite.json)
